@@ -1,0 +1,129 @@
+{
+  "project_name": "WYSHCARE",
+  "domain": "Healthcare AI Operating System",
+  "theme": "Light Primary with Dark Mode Support",
+  "archetype": "Archetype 4 (Swiss & High-Contrast) - Modified for Pristine Health-Tech",
+  "design_philosophy": {
+    "core_principles": [
+      "AI-Native and Anticipatory: Do not feel like a static CRUD app. Design should imply intelligence and proactiveness.",
+      "Investor-Ready Polish: Epic/Cerner level architectural depth, but Stripe-level surface polish and typography.",
+      "Asymmetric & Organic Tension: Avoid center-aligned 'Bootstrap' looks. Use 'Bento' grid layouts with varying spans for dashboards.",
+      "Optical Clarity: Do not use muddy shadows or generic mint-green. Rely on high contrast (deep slate vs bone white) and sharp bright accents for AI interactions."
+    ],
+    "anti_patterns": [
+      "NO purple/violet gradients.",
+      "NO Inter, Roboto, or generic sans-serif fonts for headings.",
+      "NO centered, equal-spacing symmetric layouts.",
+      "NO generic card grids with soft drop shadows.",
+      "NO mint-green or generic medical blue as primary colors."
+    ]
+  },
+  "typography": {
+    "font_families": {
+      "headings": {
+        "name": "Outfit",
+        "css_class": "font-outfit",
+        "usage": "H1, H2, H3, large marketing numbers. Use tracking-tighter for H1/H2."
+      },
+      "body": {
+        "name": "IBM Plex Sans",
+        "css_class": "font-plex-sans",
+        "usage": "Dashboard data, paragraphs, form labels, small text."
+      },
+      "mono": {
+        "name": "IBM Plex Mono",
+        "css_class": "font-plex-mono",
+        "usage": "AI confidence scores, lab record numbers, audit logs, dosage metadata."
+      }
+    },
+    "hierarchy": {
+      "h1": "text-5xl sm:text-6xl tracking-tighter font-medium leading-tight",
+      "h2": "text-4xl sm:text-5xl tracking-tight font-medium leading-tight",
+      "h3": "text-2xl sm:text-3xl tracking-tight font-medium",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm text-muted-foreground",
+      "micro": "text-xs tracking-[0.2em] uppercase font-semibold"
+    }
+  },
+  "color_palette": {
+    "light_mode": {
+      "background": "#F7F7F5",
+      "surface": "#FFFFFF",
+      "surface_muted": "#F0F0EA",
+      "text_primary": "#0A0F1A",
+      "text_secondary": "#52525B",
+      "border": "#E4E4E1",
+      "primary": "#0A0F1A",
+      "primary_foreground": "#FFFFFF",
+      "accent_ai": "#FF5722",
+      "accent_ai_foreground": "#FFFFFF",
+      "success": "#10B981",
+      "warning": "#F59E0B"
+    },
+    "dark_mode": {
+      "background": "#05070A",
+      "surface": "#0F141E",
+      "surface_muted": "#1A2233",
+      "text_primary": "#F7F7F5",
+      "text_secondary": "#A1A1AA",
+      "border": "#27272A",
+      "primary": "#F7F7F5",
+      "primary_foreground": "#0A0F1A",
+      "accent_ai": "#FF5722",
+      "accent_ai_foreground": "#FFFFFF",
+      "success": "#10B981",
+      "warning": "#F59E0B"
+    }
+  },
+  "layout_and_spacing": {
+    "spacing_scale": "Use generous padding: p-6, p-8, p-12. Avoid cramped p-2/p-4 on main containers.",
+    "marketing_layout": "Asymmetric grids. Use 'Tetris' grid mode (e.g., col-span-8 and col-span-4). Avoid 50/50 generic splits.",
+    "dashboard_layout": "Bento 'Control Room' grids (gap-4 or gap-6). Use col-span-2 row-span-2 for primary data charts. Make full use of screen real estate without feeling cluttered.",
+    "alignment": "Always left-align typography unless specifically a hero callout. Optical alignment for icons and text."
+  },
+  "surfaces_and_components": {
+    "buttons": "Sharp corners (rounded-none or rounded-sm). Flat colors. On hover, translate-y-[-2px] with a subtle sharp shadow.",
+    "navigation": "Crystal Glassmorphism. backdrop-blur-xl, bg-white/70 (light) or bg-black/60 (dark), 1px subtle bottom border (border-white/20). Must be z-50.",
+    "cards_dashboards": "Neo-Brutalist utility. 1px solid border (border-border), flat backgrounds. No muddy drop shadows. On hover, subtle lift.",
+    "ai_ocr_preview": "Use the 'Tracing Beam' effect. A dynamic 1px glowing border or highly saturated border (accent_ai color) to indicate active AI processing.",
+    "tables": "Cardless design. Dense, data-rich rows with 1px bottom border on rows. Use font-plex-mono for IDs, dates, and numbers."
+  },
+  "motion_and_interactions": {
+    "scroll": "Use Lenis for smooth momentum scrolling on the landing page.",
+    "hover_states": "Interactive elements must visibly shift (color, subtle transform, or border glow). Focus states must have high contrast rings (ring-2 ring-primary).",
+    "ai_loading": "Use ASCII art or smooth skeleton loaders with a sweeping accent_ai gradient instead of generic spinners."
+  },
+  "media_and_assets": {
+    "images": [
+      {
+        "category": "hero_background",
+        "url": "https://static.prod-images.emergentagent.com/jobs/bfc2e3d0-665c-49fe-8a20-947f475771d1/images/fd2f59785e924d1d06ab7c2ebeaf6da732bef4b2e6a976d844a75dfe010290db.png",
+        "description": "Abstract, high-end 3D rendering of a futuristic medical identity card floating with glowing data points. Use in landing page hero."
+      },
+      {
+        "category": "ai_ocr_preview",
+        "url": "https://static.prod-images.emergentagent.com/jobs/bfc2e3d0-665c-49fe-8a20-947f475771d1/images/0d8d5bb0827b78229c010ed1f8014aceec5da9f6fbbe9858e8d3f89d34742a57.png",
+        "description": "Abstract glassmorphism health data visualization floating. Use in the OCR Prescription Upload section."
+      },
+      {
+        "category": "doctor_clinic",
+        "url": "https://images.unsplash.com/photo-1758691461888-b74515208d7a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzV8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBob3NwaXRhbCUyMGFyY2hpdGVjdHVyZSUyMG9yJTIwZG9jdG9yJTIwaW4lMjBtb2Rlcm4lMjBjbGluaWN8ZW58MHx8fHwxNzc4NzU3OTI0fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Doctor typing on computer in office. Use for trust signals or provider portal preview."
+      },
+      {
+        "category": "hospital_architecture",
+        "url": "https://images.unsplash.com/photo-1777269749032-d8d458ae594d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzV8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3NwaXRhbCUyMGFyY2hpdGVjdHVyZSUyMG9yJTIwZG9jdG9yJTIwaW4lMjBtb2Rlcm4lMjBjbGluaWN8ZW58MHx8fHwxNzc4NzU3OTI0fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Clean, modern hospital corridor. Use for about section or investor-grade architectural background."
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Install and configure 'Outfit', 'IBM Plex Sans', and 'IBM Plex Mono' fonts from Google Fonts.",
+    "Do not use Shadcn 'Card' wrapper for everything. Use raw divs with 1px borders and distinct padding for custom bento grids.",
+    "Ensure all buttons, form inputs, and interactive elements have appropriate 'data-testid' attributes (e.g., data-testid='upload-prescription-button').",
+    "Use Phosphor Icons or Lucide React. Phosphor is preferred for dense data tables.",
+    "Use framer-motion for page transitions and micro-interactions on dashboard widgets.",
+    "For the OCR extraction preview, ensure the UI explicitly shows 'Confidence Scores' in the IBM Plex Mono font to sell the AI-native aspect."
+  ]
+}
