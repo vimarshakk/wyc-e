@@ -1,54 +1,56 @@
-import { useEffect } from "react";
+import React from 'react';
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Landing from './pages/Landing';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import AuthCallback from './pages/AuthCallback';
+import PatientDashboard from './pages/PatientDashboard';
+import DoctorDashboard from './pages/DoctorDashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import OcrUpload from './pages/OcrUpload';
+import Records from './pages/Records';
+import Appointments from './pages/Appointments';
+import WyshIdCard from './pages/WyshId';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+function Protected({ children, roles }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center mono text-xs text-muted-foreground">AUTHENTICATING…</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (roles && !roles.includes(user.role)) return <Navigate to={`/app/${user.role}`} replace />;
+  return children;
+}
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
+function HashRouter() {
+  const loc = useLocation();
+  if (loc.hash?.includes('session_id=')) return <AuthCallback />;
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
-
-function App() {
-  return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/app/patient" element={<Protected roles={['patient']}><PatientDashboard /></Protected>} />
+      <Route path="/app/doctor" element={<Protected roles={['doctor']}><DoctorDashboard /></Protected>} />
+      <Route path="/app/admin" element={<Protected roles={['admin']}><AdminDashboard /></Protected>} />
+      <Route path="/app/ocr" element={<Protected><OcrUpload /></Protected>} />
+      <Route path="/app/records" element={<Protected><Records /></Protected>} />
+      <Route path="/app/appointments" element={<Protected><Appointments /></Protected>} />
+      <Route path="/app/wyshid" element={<Protected><WyshIdCard /></Protected>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <HashRouter />
+        <Toaster richColors position="top-right" />
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}

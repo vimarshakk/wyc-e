@@ -1,0 +1,38 @@
+{
+  "summary": "Comprehensive backend testing of WyshCare Phase-1 API. Authored single pytest suite (29 tests) covering health, auth (signup/login/me + 401 paths), WyshID (me + lookup + RBAC), records (create/list/timeline), appointments (doctors/book/mine/cancel + 404), OCR prescription pipeline (real PNG via PIL, Claude Sonnet 4.5 extraction + Emergent object storage), admin endpoints (stats/users/audit) and admin RBAC. Found and fixed two regressions where POST endpoints returned the post-insert Mongo doc with ObjectId _id leading to 500 'ObjectId is not iterable'. After fix: 29/29 pass.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "Email validation (pydantic EmailStr)", "issue": "Reserved TLD .test (per test_credentials.md) is rejected by pydantic EmailStr (422). Either relax validator or update /app/memory/test_credentials.md to use a non-reserved TLD (used @wyshcare.io in tests)."},
+      {"endpoint": "GET /api/ocr/files/{file_id}", "issue": "Authorisation logic comment notes 'owner-only for simplicity'; doctor/admin path is implemented but record-owner relationship via patient consent is not enforced. Acceptable for Phase 1, flag for Phase 2 RBAC hardening."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_wyshcare_backend.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Confirm fixes in /app/backend/app/modules/records/router.py and /app/backend/app/modules/appointments/router.py (added rec.pop('_id', None) / appt.pop('_id', None) after insert_one to prevent ObjectId serialization 500).",
+    "Decide on test email TLD policy: either keep pydantic strict and update test_credentials.md to non-reserved domains, or use Pydantic EmailStr with allow_special_use."
+  ],
+  "critical_code_review_comments": [
+    "Repeated pattern: many routers insert_one(doc) and return doc immediately — motor mutates the dict to add _id (ObjectId), causing 500s in JSON encoding. Two endpoints (records.create, appointments.book) had this bug; OCR endpoint handled it correctly. Recommend a small helper insert_and_strip(doc) or use {'$set'} + return without _id, or apply projection-style cleanup uniformly.",
+    "auth/router.py google_exchange uses blocking `requests.get` inside async route — should use httpx.AsyncClient to avoid event-loop blocking under load.",
+    "ocr/router.py extract_prescription failures are silently swallowed into extracted={'_error':...}; consider logging the error and surfacing a 'status: extraction_failed' instead of mixing with 'needs_review'.",
+    "Pydantic SignupBody uses EmailStr which rejects reserved TLDs like .test; ensure test_credentials.md aligns with validator behaviour."
+  ],
+  "updated_files": [
+    "/app/backend/app/modules/records/router.py",
+    "/app/backend/app/modules/appointments/router.py",
+    "/app/backend/tests/__init__.py",
+    "/app/backend/tests/test_wyshcare_backend.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "not tested (backend-only request)"},
+  "test_credentials": "Per-run unique emails: patient_<6hex>@wyshcare.io, doctor_<6hex>@wyshcare.io, admin_<6hex>@wyshcare.io / TestPass123!. (Did NOT use @wysh.test from test_credentials.md because pydantic EmailStr rejects reserved TLDs.)",
+  "seed_data_creation": "Each test run creates 3 fresh users (patient/doctor/admin), 1 vitals record, 1 appointment (cancelled), 1 OCR prescription document with a generated prescription-like PNG. WyshIDs created per user.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 29 backend tests in /app/backend/tests/test_wyshcare_backend.py pass against REACT_APP_BACKEND_URL. Re-run with: pytest /app/backend/tests/ -v --junitxml=/app/test_reports/pytest/pytest_results.xml. OCR test generates a real PNG via PIL/DejaVu fonts; Claude Sonnet 4.5 via emergentintegrations returns medications array — status field can be 'extracted' or 'needs_review'. Note the ObjectId-leak fix pattern: any router doing insert_one then returning the doc must pop('_id', None).",
+  "rca of the issue": "POST /api/records and POST /api/appointments returned 500 'ObjectId is not iterable'. Root cause: motor's insert_one(rec) mutates rec in-place by injecting the BSON ObjectId as rec['_id']. The route handlers returned rec directly, and FastAPI's default JSON encoder cannot serialise bson.ObjectId, producing a ValueError that surfaces as 500. Reproduction: signup as patient, then POST /api/records with any valid body → 500. Mitigation applied: rec.pop('_id', None) / appt.pop('_id', None) immediately after insert_one. Long-term fix: a shared helper or BaseModel response wrapping to guarantee _id never leaks. The OCR module already had this pattern correct (doc.pop('_id', None) before return)."
+}
