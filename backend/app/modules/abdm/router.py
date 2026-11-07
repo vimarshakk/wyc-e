@@ -9,6 +9,7 @@ import httpx
 from cryptography.fernet import Fernet
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.serialization import load_der_public_key
 from cryptography.hazmat.primitives import hashes
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -70,6 +71,12 @@ def _abha_url(path: str) -> str:
     return f"{os.environ['ABDM_ABHA_URL'].rstrip('/')}/{path.lstrip('/')}"
 
 
+def _gateway_url(path: str) -> str:
+    base = os.environ["ABDM_GATEWAY_URL"].rstrip("/")
+    suffix = "/api/hiecm/gateway/v3"
+    return f"{base if base.endswith(suffix) else base + suffix}/{path.lstrip('/')}"
+
+
 async def _abha_public_key() -> str:
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.get(_abha_url("profile/public/certificate"))
@@ -82,7 +89,10 @@ async def _abha_public_key() -> str:
 
 
 def _rsa_encrypt(value: str, certificate: str) -> str:
-    public_key = x509.load_pem_x509_certificate(certificate.encode()).public_key()
+    if "BEGIN CERTIFICATE" in certificate:
+        public_key = x509.load_pem_x509_certificate(certificate.encode()).public_key()
+    else:
+        public_key = load_der_public_key(base64.b64decode(certificate))
     encrypted = public_key.encrypt(value.encode(), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA1()), algorithm=hashes.SHA1(), label=None))
     return base64.b64encode(encrypted).decode()
 
@@ -93,7 +103,7 @@ def _headers(token: str, request_id: str) -> dict:
 
 async def _session() -> str:
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(f"{os.environ['ABDM_GATEWAY_URL'].rstrip('/')}/api/hiecm/gateway/v3/sessions", headers={"X-CM-ID": os.environ["ABDM_CM_ID"], "REQUEST-ID": str(uuid.uuid4()), "TIMESTAMP": datetime.now(timezone.utc).isoformat()}, json={"clientId": os.environ["ABDM_CLIENT_ID"], "clientSecret": os.environ["ABDM_CLIENT_SECRET"]})
+        response = await client.post(_gateway_url("sessions"), headers={"X-CM-ID": os.environ["ABDM_CM_ID"], "REQUEST-ID": str(uuid.uuid4()), "TIMESTAMP": datetime.now(timezone.utc).isoformat()}, json={"clientId": os.environ["ABDM_CLIENT_ID"], "clientSecret": os.environ["ABDM_CLIENT_SECRET"]})
     if response.status_code >= 400:
         raise HTTPException(status_code=502, detail="ABDM sandbox session could not be created")
     token = response.json().get("accessToken")
@@ -123,7 +133,7 @@ async def start_abha_otp(body: AbhaOtpStart, user: dict = Depends(require_role("
     headers = _headers(await _session(), request_id)
     certificate = await _abha_public_key()
     async with httpx.AsyncClient(timeout=30) as client:
-        otp_request = await client.post(_abha_url("enrollment/request/otp"), headers=headers, json={"scope": ["abha-enrol"], "loginHint": "aadhaar", "loginId": _rsa_encrypt(body.aadhaar_number, certificate), "otpSystem": "aadhaar", "txnId": ""})
+        otp_request = await client.post(_abha_url("enrollment/request-otp/aadhaar-otp"), headers=headers, json={"scope": ["abha-enrol"], "loginHint": "aadhaar", "loginId": _rsa_encrypt(body.aadhaar_number, certificate), "otpSystem": "aadhaar", "txnId": ""})
     if otp_request.status_code >= 400 or not otp_request.json().get("txnId"):
         raise HTTPException(status_code=502, detail="ABHA OTP could not be requested")
     operation_id = f"abha_{uuid.uuid4().hex[:16]}"
@@ -141,7 +151,7 @@ async def verify_abha_otp(body: AbhaOtpVerify, user: dict = Depends(require_role
     headers = {"REQUEST-ID": str(uuid.uuid4()), "TIMESTAMP": datetime.now(timezone.utc).isoformat()}
     payload = {"authData": {"authMethods": ["otp"], "otp": {"txnId": _dec(operation["encrypted_txn"]), "otpValue": _rsa_encrypt(body.otp, certificate), "mobile": _rsa_encrypt(body.communication_mobile, certificate)}}, "consent": {"code": "abha-enrollment", "version": "1.4"}}
     async with httpx.AsyncClient(timeout=30) as client:
-        verified = await client.post(_abha_url("enrollment/enrol/byAadhaar"), headers=headers, json=payload)
+        verified = await client.post(_abha_url("enrollment/enrol/byaadhaar-otp"), headers=headers, json=payload)
     if verified.status_code >= 400:
         raise HTTPException(status_code=400, detail="ABHA OTP verification failed")
     await abdm_transactions.update_one({"transaction_id": body.operation_id}, {"$set": {"status": "verified", "verified_at": datetime.now(timezone.utc).isoformat()}, "$unset": {"encrypted_txn": ""}})
