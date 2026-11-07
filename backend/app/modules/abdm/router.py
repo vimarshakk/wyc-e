@@ -36,12 +36,14 @@ class CareContextBody(BaseModel):
 
 
 class AbhaOtpStart(BaseModel):
-    abha_address: str = Field(min_length=3, max_length=120)
+    aadhaar_number: str = Field(pattern="^[0-9]{12}$")
+    consent_agreed: bool
 
 
 class AbhaOtpVerify(BaseModel):
     operation_id: str
     otp: str = Field(pattern="^[0-9]{4,8}$")
+    communication_mobile: str = Field(pattern="^[0-9]{10}$")
 
 
 class ConsentRequestBody(BaseModel):
@@ -70,7 +72,7 @@ def _abha_url(path: str) -> str:
 
 async def _abha_public_key() -> str:
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.get(_abha_url("phr/app/login/public/certificate"))
+        response = await client.get(_abha_url("profile/public/certificate"))
     if response.status_code >= 400:
         raise HTTPException(status_code=502, detail="ABHA public certificate is unavailable")
     try:
@@ -81,7 +83,7 @@ async def _abha_public_key() -> str:
 
 def _rsa_encrypt(value: str, certificate: str) -> str:
     public_key = x509.load_pem_x509_certificate(certificate.encode()).public_key()
-    encrypted = public_key.encrypt(value.encode(), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+    encrypted = public_key.encrypt(value.encode(), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA1()), algorithm=hashes.SHA1(), label=None))
     return base64.b64encode(encrypted).decode()
 
 
@@ -115,33 +117,31 @@ async def my_abdm_status(user: dict = Depends(require_role("patient"))):
 
 @router.post("/abha/otp/start", status_code=202)
 async def start_abha_otp(body: AbhaOtpStart, user: dict = Depends(require_role("patient"))):
+    if not body.consent_agreed:
+        raise HTTPException(status_code=400, detail="Aadhaar enrollment consent is required")
     request_id = str(uuid.uuid4())
-    headers = {"REQUEST-ID": request_id, "TIMESTAMP": datetime.now(timezone.utc).isoformat()}
-    async with httpx.AsyncClient(timeout=30) as client:
-        search = await client.post(_abha_url("phr/web/login/abha/search"), headers=headers, json={"abhaAddress": body.abha_address})
-    if search.status_code >= 400:
-        raise HTTPException(status_code=502, detail="ABHA address could not be verified")
+    headers = _headers(await _session(), request_id)
     certificate = await _abha_public_key()
     async with httpx.AsyncClient(timeout=30) as client:
-        otp_request = await client.post(_abha_url("phr/web/login/abha/request/otp"), headers=headers, json={"scope": ["abha-address-login", "mobile-verify"], "loginHint": "abha-address", "loginId": _rsa_encrypt(body.abha_address, certificate), "otpSystem": "abdm"})
+        otp_request = await client.post(_abha_url("enrollment/request/otp"), headers=headers, json={"scope": ["abha-enrol"], "loginHint": "aadhaar", "loginId": _rsa_encrypt(body.aadhaar_number, certificate), "otpSystem": "aadhaar", "txnId": ""})
     if otp_request.status_code >= 400 or not otp_request.json().get("txnId"):
         raise HTTPException(status_code=502, detail="ABHA OTP could not be requested")
     operation_id = f"abha_{uuid.uuid4().hex[:16]}"
-    await abdm_transactions.insert_one({"transaction_id": operation_id, "patient_id": user["user_id"], "kind": "abha_otp", "status": "otp_sent", "encrypted_txn": _enc(otp_request.json()["txnId"]), "created_at": datetime.now(timezone.utc).isoformat()})
+    await abdm_transactions.insert_one({"transaction_id": operation_id, "patient_id": user["user_id"], "kind": "abha_aadhaar_enrol", "status": "otp_sent", "encrypted_txn": _enc(otp_request.json()["txnId"]), "consent_code": "abha-enrollment", "consent_version": "1.4", "consent_accepted_at": datetime.now(timezone.utc).isoformat(), "created_at": datetime.now(timezone.utc).isoformat()})
     await write_audit(user["user_id"], "abdm.abha.otp.start", "abdm_transaction", operation_id)
     return {"operation_id": operation_id, "status": "otp_sent"}
 
 
 @router.post("/abha/otp/verify")
 async def verify_abha_otp(body: AbhaOtpVerify, user: dict = Depends(require_role("patient"))):
-    operation = await abdm_transactions.find_one({"transaction_id": body.operation_id, "patient_id": user["user_id"], "kind": "abha_otp", "status": "otp_sent"}, {"_id": 0})
+    operation = await abdm_transactions.find_one({"transaction_id": body.operation_id, "patient_id": user["user_id"], "kind": "abha_aadhaar_enrol", "status": "otp_sent"}, {"_id": 0})
     if not operation:
         raise HTTPException(status_code=409, detail="ABHA OTP operation is unavailable")
     certificate = await _abha_public_key()
     headers = {"REQUEST-ID": str(uuid.uuid4()), "TIMESTAMP": datetime.now(timezone.utc).isoformat()}
-    payload = {"scope": ["abha-address-login", "mobile-verify"], "authData": {"authMethods": ["otp"], "otp": {"txnId": _dec(operation["encrypted_txn"]), "otpValue": _rsa_encrypt(body.otp, certificate)}}}
+    payload = {"authData": {"authMethods": ["otp"], "otp": {"txnId": _dec(operation["encrypted_txn"]), "otpValue": _rsa_encrypt(body.otp, certificate), "mobile": _rsa_encrypt(body.communication_mobile, certificate)}}, "consent": {"code": "abha-enrollment", "version": "1.4"}}
     async with httpx.AsyncClient(timeout=30) as client:
-        verified = await client.post(_abha_url("phr/web/login/abha/verify"), headers=headers, json=payload)
+        verified = await client.post(_abha_url("enrollment/enrol/byAadhaar"), headers=headers, json=payload)
     if verified.status_code >= 400:
         raise HTTPException(status_code=400, detail="ABHA OTP verification failed")
     await abdm_transactions.update_one({"transaction_id": body.operation_id}, {"$set": {"status": "verified", "verified_at": datetime.now(timezone.utc).isoformat()}, "$unset": {"encrypted_txn": ""}})
