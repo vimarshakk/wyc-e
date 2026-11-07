@@ -6,6 +6,9 @@ import uuid
 from datetime import datetime, timezone
 import httpx
 from cryptography.fernet import Fernet
+from cryptography import x509
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 from ...core.audit import write_audit
@@ -31,6 +34,15 @@ class CareContextBody(BaseModel):
     display: str = Field(min_length=1, max_length=160)
 
 
+class AbhaOtpStart(BaseModel):
+    abha_address: str = Field(min_length=3, max_length=120)
+
+
+class AbhaOtpVerify(BaseModel):
+    operation_id: str
+    otp: str = Field(pattern="^[0-9]{4,8}$")
+
+
 def _cipher() -> Fernet:
     return Fernet(base64.urlsafe_b64encode(hashlib.sha256(settings.JWT_SECRET.encode()).digest()))
 
@@ -41,6 +53,27 @@ def _enc(value: str) -> str:
 
 def _dec(value: str) -> str:
     return _cipher().decrypt(value.encode()).decode()
+
+
+def _abha_url(path: str) -> str:
+    return f"{os.environ['ABDM_ABHA_URL'].rstrip('/')}/{path.lstrip('/')}"
+
+
+async def _abha_public_key() -> str:
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.get(_abha_url("phr/app/login/public/certificate"))
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail="ABHA public certificate is unavailable")
+    try:
+        return response.json().get("publicKey") or response.json().get("certificate") or response.text
+    except ValueError:
+        return response.text
+
+
+def _rsa_encrypt(value: str, certificate: str) -> str:
+    public_key = x509.load_pem_x509_certificate(certificate.encode()).public_key()
+    encrypted = public_key.encrypt(value.encode(), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+    return base64.b64encode(encrypted).decode()
 
 
 def _headers(token: str, request_id: str) -> dict:
@@ -69,6 +102,43 @@ async def my_abdm_status(user: dict = Depends(require_role("patient"))):
     link = await abdm_patient_links.find_one({"patient_id": user["user_id"]}, {"_id": 0, "status": 1, "updated_at": 1})
     consents = await abdm_consents.find({"patient_id": user["user_id"]}, {"_id": 0, "consent_id": 1, "status": 1, "created_at": 1}).sort("created_at", -1).to_list(50)
     return {"link_status": link.get("status", "not_linked") if link else "not_linked", "consents": consents, "record_discovery": "pending_sandbox_flow", "locker": "pending_sandbox_flow"}
+
+
+@router.post("/abha/otp/start", status_code=202)
+async def start_abha_otp(body: AbhaOtpStart, user: dict = Depends(require_role("patient"))):
+    request_id = str(uuid.uuid4())
+    headers = {"REQUEST-ID": request_id, "TIMESTAMP": datetime.now(timezone.utc).isoformat()}
+    async with httpx.AsyncClient(timeout=30) as client:
+        search = await client.post(_abha_url("phr/web/login/abha/search"), headers=headers, json={"abhaAddress": body.abha_address})
+    if search.status_code >= 400:
+        raise HTTPException(status_code=502, detail="ABHA address could not be verified")
+    certificate = await _abha_public_key()
+    async with httpx.AsyncClient(timeout=30) as client:
+        otp_request = await client.post(_abha_url("phr/web/login/abha/request/otp"), headers=headers, json={"scope": ["abha-address-login", "mobile-verify"], "loginHint": "abha-address", "loginId": _rsa_encrypt(body.abha_address, certificate), "otpSystem": "abdm"})
+    if otp_request.status_code >= 400 or not otp_request.json().get("txnId"):
+        raise HTTPException(status_code=502, detail="ABHA OTP could not be requested")
+    operation_id = f"abha_{uuid.uuid4().hex[:16]}"
+    await abdm_transactions.insert_one({"transaction_id": operation_id, "patient_id": user["user_id"], "kind": "abha_otp", "status": "otp_sent", "encrypted_txn": _enc(otp_request.json()["txnId"]), "created_at": datetime.now(timezone.utc).isoformat()})
+    await write_audit(user["user_id"], "abdm.abha.otp.start", "abdm_transaction", operation_id)
+    return {"operation_id": operation_id, "status": "otp_sent"}
+
+
+@router.post("/abha/otp/verify")
+async def verify_abha_otp(body: AbhaOtpVerify, user: dict = Depends(require_role("patient"))):
+    operation = await abdm_transactions.find_one({"transaction_id": body.operation_id, "patient_id": user["user_id"], "kind": "abha_otp", "status": "otp_sent"}, {"_id": 0})
+    if not operation:
+        raise HTTPException(status_code=409, detail="ABHA OTP operation is unavailable")
+    certificate = await _abha_public_key()
+    headers = {"REQUEST-ID": str(uuid.uuid4()), "TIMESTAMP": datetime.now(timezone.utc).isoformat()}
+    payload = {"scope": ["abha-address-login", "mobile-verify"], "authData": {"authMethods": ["otp"], "otp": {"txnId": _dec(operation["encrypted_txn"]), "otpValue": _rsa_encrypt(body.otp, certificate)}}}
+    async with httpx.AsyncClient(timeout=30) as client:
+        verified = await client.post(_abha_url("phr/web/login/abha/verify"), headers=headers, json=payload)
+    if verified.status_code >= 400:
+        raise HTTPException(status_code=400, detail="ABHA OTP verification failed")
+    await abdm_transactions.update_one({"transaction_id": body.operation_id}, {"$set": {"status": "verified", "verified_at": datetime.now(timezone.utc).isoformat()}, "$unset": {"encrypted_txn": ""}})
+    await abdm_patient_links.update_one({"patient_id": user["user_id"]}, {"$set": {"patient_id": user["user_id"], "status": "abha_verified", "updated_at": datetime.now(timezone.utc).isoformat()}}, upsert=True)
+    await write_audit(user["user_id"], "abdm.abha.otp.verify", "abdm_transaction", body.operation_id)
+    return {"verified": True, "status": "abha_verified"}
 
 
 @router.post("/hip/link-token", status_code=202)
