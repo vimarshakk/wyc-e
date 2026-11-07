@@ -4,6 +4,7 @@ import hashlib
 import os
 import uuid
 from datetime import datetime, timezone
+from datetime import timedelta
 import httpx
 from cryptography.fernet import Fernet
 from cryptography import x509
@@ -41,6 +42,14 @@ class AbhaOtpStart(BaseModel):
 class AbhaOtpVerify(BaseModel):
     operation_id: str
     otp: str = Field(pattern="^[0-9]{4,8}$")
+
+
+class ConsentRequestBody(BaseModel):
+    hi_types: list[str] = Field(min_length=1, max_length=8)
+    from_at: datetime
+    to_at: datetime
+    erase_at: datetime
+    purpose_code: str = Field(default="CAREMGT", pattern="^(CAREMGT|BTG|PUBHLTH|HPAYMT|DSRCH|PATRQT)$")
 
 
 def _cipher() -> Fernet:
@@ -139,6 +148,45 @@ async def verify_abha_otp(body: AbhaOtpVerify, user: dict = Depends(require_role
     await abdm_patient_links.update_one({"patient_id": user["user_id"]}, {"$set": {"patient_id": user["user_id"], "status": "abha_verified", "updated_at": datetime.now(timezone.utc).isoformat()}}, upsert=True)
     await write_audit(user["user_id"], "abdm.abha.otp.verify", "abdm_transaction", body.operation_id)
     return {"verified": True, "status": "abha_verified"}
+
+
+@router.post("/consents/request", status_code=202)
+async def request_consent(body: ConsentRequestBody, user: dict = Depends(require_role("patient"))):
+    if body.to_at <= body.from_at or body.erase_at <= body.to_at:
+        raise HTTPException(status_code=400, detail="Consent dates are invalid")
+    abha_link = await abdm_patient_links.find_one({"patient_id": user["user_id"], "status": "abha_verified"}, {"_id": 0, "patient_id": 1})
+    if not abha_link:
+        raise HTTPException(status_code=409, detail="Verify ABHA before requesting record-sharing consent")
+    request_id = str(uuid.uuid4())
+    consent_id = f"cons_{uuid.uuid4().hex[:16]}"
+    token = await _session()
+    payload = {"consent": {"purpose": {"text": "Care Management", "code": body.purpose_code, "refUri": "https://wyshcare.in/consent"}, "hiTypes": body.hi_types, "permission": {"accessMode": "VIEW", "dateRange": {"from": body.from_at.astimezone(timezone.utc).isoformat(), "to": body.to_at.astimezone(timezone.utc).isoformat()}, "dataEraseAt": body.erase_at.astimezone(timezone.utc).isoformat()}}}
+    await abdm_consents.insert_one({"consent_id": consent_id, "request_id": request_id, "patient_id": user["user_id"], "status": "submitted", "hi_types": body.hi_types, "created_at": datetime.now(timezone.utc).isoformat()})
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(f"{os.environ['ABDM_GATEWAY_URL'].rstrip('/')}/api/hiecm/consent/v3/request/init", headers=_headers(token, request_id), json=payload)
+    if response.status_code >= 400:
+        await abdm_consents.update_one({"consent_id": consent_id}, {"$set": {"status": "rejected", "updated_at": datetime.now(timezone.utc).isoformat()}})
+        raise HTTPException(status_code=502, detail="ABDM consent request was rejected")
+    await write_audit(user["user_id"], "abdm.consent.request", "abdm_consent", consent_id, {"hi_types": body.hi_types})
+    return {"consent_id": consent_id, "status": "submitted"}
+
+
+@router.post("/v3/hiu/consent/request/on-init", status_code=202)
+async def on_consent_init(request: Request, x_callback_secret: str | None = Header(default=None)):
+    expected_secret = os.environ.get("ABDM_CALLBACK_SHARED_SECRET")
+    if not x_callback_secret or not expected_secret or x_callback_secret != expected_secret:
+        raise HTTPException(status_code=401, detail="Unauthorized callback")
+    body = await request.json()
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="Callback body must be an object")
+    request_id = body.get("requestId")
+    consent_request_id = body.get("consentRequestId")
+    if not request_id or not consent_request_id:
+        raise HTTPException(status_code=400, detail="Consent callback is incomplete")
+    result = await abdm_callback_events.update_one({"event_type": "consent_init", "correlation_id": request_id}, {"$setOnInsert": {"event_type": "consent_init", "correlation_id": request_id, "received_at": datetime.now(timezone.utc).isoformat(), "status": "received"}}, upsert=True)
+    if result.upserted_id:
+        await abdm_consents.update_one({"request_id": request_id}, {"$set": {"abdm_consent_request_id": consent_request_id, "status": "awaiting_patient_decision", "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return {"status": "accepted"}
 
 
 @router.post("/hip/link-token", status_code=202)
