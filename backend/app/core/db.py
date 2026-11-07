@@ -26,6 +26,11 @@ async def ensure_indexes():
     await prescriptions.create_index([("patient_id", 1), ("created_at", -1)])
     await appointments.create_index([("patient_id", 1), ("scheduled_at", -1)])
     await appointments.create_index([("doctor_id", 1), ("scheduled_at", -1)])
+    await appointments.create_index(
+        [("doctor_id", 1), ("scheduled_at", 1)],
+        unique=True,
+        partialFilterExpression={"status": "scheduled"},
+    )
     await audit_logs.create_index([("actor_id", 1), ("created_at", -1)])
     await files.create_index("file_id", unique=True)
 

@@ -11,6 +11,7 @@ from app.modules.records.router import router as records_router
 from app.modules.ocr.router import router as ocr_router
 from app.modules.appointments.router import router as appointments_router
 from app.modules.admin.router import router as admin_router
+from app.modules.availability.router import router as availability_router
 from app.modules.storage.service import init_storage
 
 logging.basicConfig(level=logging.INFO,
@@ -37,6 +38,7 @@ api.include_router(identity_router)
 api.include_router(records_router)
 api.include_router(ocr_router)
 api.include_router(appointments_router)
+api.include_router(availability_router)
 api.include_router(admin_router)
 
 app.include_router(api)

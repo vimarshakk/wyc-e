@@ -18,10 +18,11 @@ Build the foundational production-grade platform for WYSHCARE — India's AI-Nat
   - `modules/records`: EMR CRUD + longitudinal timeline
   - `modules/ocr`: upload + Claude Sonnet 4.5 vision extraction
   - `modules/appointments`: book, mine, cancel, doctor list
+  - `modules/availability`: recurring doctor hours, time-off windows, India-local slot generation
   - `modules/admin`: stats, users, audit
   - `modules/storage`: Emergent object-storage abstraction
   - `modules/ai`: LLM provider abstraction (currently Claude)
-- Collections: `wysh_users`, `wysh_sessions`, `wysh_identities`, `wysh_health_records`, `wysh_prescriptions`, `wysh_appointments`, `wysh_audit_logs`, `wysh_files`
+- Collections: `wysh_users`, `wysh_sessions`, `wysh_identities`, `wysh_health_records`, `wysh_prescriptions`, `wysh_appointments`, `wysh_availability`, `wysh_time_off`, `wysh_audit_logs`, `wysh_files`
 
 ## Personas
 - **Patient** — claims a WyshID, scans prescriptions, books appointments, views longitudinal record.
@@ -40,12 +41,19 @@ Build the foundational production-grade platform for WYSHCARE — India's AI-Nat
 - [x] Audit logging on every significant action
 - [x] Landing, Login, Signup, AuthCallback (Google), Patient/Doctor/Admin dashboards, OCR upload UI, Records, Appointments, WyshID card
 - [x] Premium design system: Outfit + IBM Plex Sans + Mono, bone/slate palette + coral #FF5722 accent, bento grids, glass nav
+- [x] Doctor availability and slot booking UI (2026-11-07): doctor-only schedule management, time-off, India-local slots, patient slot selection, and mobile navigation
+- [x] Availability safety rules (2026-11-07): past-slot exclusion, whole-slot time-off overlap handling, overlapping-window rejection, patient-only bookings, and an active doctor/slot uniqueness guard
+
+## Latest verification (2026-11-07)
+- Availability regression suite: **17/17 passed** against the public preview API.
+- Frontend production build: passed.
+- Browser smoke tests: doctor schedule save on desktop; mobile navigation to Availability with readable stacked controls.
 
 ## Backlog (prioritized)
 - P0: Telemedicine session shell (video room, encounter notes)
 - P0: Notifications (email/SMS/WhatsApp) — Twilio/Resend
 - P1: Lab report OCR with normalization
-- P1: Doctor schedule/availability windows + slots
+- P1: Complete prescription OCR extraction pipeline hardening and review workflow
 - P1: Healthcare graph layer (Neo4j-ready edges)
 - P1: Consent architecture + DPDP-Act-aware data sharing flows
 - P2: Billing/invoices

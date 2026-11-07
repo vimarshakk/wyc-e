@@ -4,8 +4,9 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Literal
+from pymongo.errors import DuplicateKeyError
 from ...core.db import users, appointments
-from ...core.deps import get_current_user
+from ...core.deps import get_current_user, require_role
 from ...core.audit import write_audit
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
@@ -25,21 +26,41 @@ async def list_doctors(user: dict = Depends(get_current_user)):
 
 
 @router.post("")
-async def book(body: BookBody, user: dict = Depends(get_current_user)):
+async def book(body: BookBody, user: dict = Depends(require_role("patient"))):
     doc = await users.find_one({"user_id": body.doctor_id, "role": "doctor"}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Doctor not found")
+
+    # Validate slot against availability engine + prevent double-booking
+    from datetime import datetime as _dt
+    try:
+        slot_dt = _dt.fromisoformat(body.scheduled_at.replace("Z", "+00:00"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid scheduled_at (ISO required)")
+    if slot_dt.tzinfo is None:
+        raise HTTPException(status_code=400, detail="scheduled_at timezone is required")
+    from ..availability.router import CLINIC_TIMEZONE, slots as compute_slots
+    slot_dt = slot_dt.astimezone(CLINIC_TIMEZONE)
+    date_str = slot_dt.strftime("%Y-%m-%d")
+    avail = await compute_slots(doctor_id=body.doctor_id, date=date_str, user=user)
+    available_slots = {_dt.fromisoformat(slot).astimezone(CLINIC_TIMEZONE) for slot in avail.get("slots", [])}
+    if slot_dt not in available_slots:
+        raise HTTPException(status_code=409, detail="Slot is not available")
+
     appt = {
         "appointment_id": f"apt_{uuid.uuid4().hex[:16]}",
         "patient_id": user["user_id"],
         "doctor_id": body.doctor_id,
-        "scheduled_at": body.scheduled_at,
+        "scheduled_at": slot_dt.isoformat(),
         "mode": body.mode,
         "reason": body.reason,
         "status": "scheduled",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    await appointments.insert_one(appt)
+    try:
+        await appointments.insert_one(appt)
+    except DuplicateKeyError:
+        raise HTTPException(status_code=409, detail="Slot is not available")
     appt.pop("_id", None)
     await write_audit(user["user_id"], "appointment.book", "appointment", appt["appointment_id"],
                       {"doctor_id": body.doctor_id})

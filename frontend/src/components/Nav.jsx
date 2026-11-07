@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LogOut, Sparkles } from 'lucide-react';
 
@@ -13,6 +13,7 @@ const navByRole = {
   ],
   doctor: [
     { to: '/app/doctor', label: 'Overview' },
+    { to: '/app/availability', label: 'Availability' },
     { to: '/app/appointments', label: 'Schedule' },
     { to: '/app/wyshid', label: 'WyshID' },
   ],
@@ -25,13 +26,14 @@ const navByRole = {
 export default function Nav() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const items = user ? (navByRole[user.role] || []) : [];
 
   const onLogout = async () => { await logout(); navigate('/'); };
 
   return (
     <header className="glass-nav sticky top-0 z-50 w-full" data-testid="app-nav">
-      <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 lg:px-10 h-16">
+      <div className="max-w-[1400px] mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-10 h-16">
         <Link to={user ? `/app/${user.role}` : '/'} className="flex items-center gap-2" data-testid="nav-logo">
           <div className="w-7 h-7 bg-slateink dark:bg-bone flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-coral" />
@@ -51,6 +53,18 @@ export default function Nav() {
             >{it.label}</NavLink>
           ))}
         </nav>
+
+        {user && (
+          <select
+            aria-label="Navigate to"
+            data-testid="mobile-nav-select"
+            value={items.some((item) => item.to === location.pathname) ? location.pathname : ''}
+            onChange={(event) => navigate(event.target.value)}
+            className="md:hidden min-w-0 max-w-24 border border-border bg-transparent px-2 py-1.5 text-xs"
+          >
+            {items.map((item) => <option key={item.to} value={item.to}>{item.label}</option>)}
+          </select>
+        )}
 
         <div className="flex items-center gap-3">
           {user ? (

@@ -14,6 +14,7 @@ import OcrUpload from './pages/OcrUpload';
 import Records from './pages/Records';
 import Appointments from './pages/Appointments';
 import WyshIdCard from './pages/WyshId';
+import DoctorAvailability from './pages/DoctorAvailability';
 
 function Protected({ children, roles }) {
   const { user, loading } = useAuth();
@@ -39,6 +40,7 @@ function HashRouter() {
       <Route path="/app/records" element={<Protected><Records /></Protected>} />
       <Route path="/app/appointments" element={<Protected><Appointments /></Protected>} />
       <Route path="/app/wyshid" element={<Protected><WyshIdCard /></Protected>} />
+      <Route path="/app/availability" element={<Protected roles={['doctor']}><DoctorAvailability /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -49,7 +51,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <HashRouter />
-        <Toaster richColors position="top-right" />
+        <Toaster richColors position="bottom-right" />
       </BrowserRouter>
     </AuthProvider>
   );

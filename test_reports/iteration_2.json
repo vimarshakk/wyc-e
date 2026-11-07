@@ -1,0 +1,51 @@
+{
+  "summary": "Availability/booking reviewed and tested through the public URL. Final pytest: 11/17 pass; six deterministic defects confirmed on rerun. Public frontend compiles/loads, unauthenticated and patient availability guards pass, supplied doctor/patient logins pass, disposable doctor schedule save/reload and time-off create/delete pass, patient books Dr. Anaya Shah next Monday and sees Scheduled entry; booked slot disappears from API and UI. No product code changed.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/availability/time-off", "issue": "Malformed ISO start/end returns HTTP 500. Backend log confirms uncaught ValueError in _parse_iso at availability/router.py:48,91.", "priority": "HIGH"},
+      {"endpoint": "GET /api/availability/{doctor_id}/slots", "issue": "Partial time-off overlap is not excluded: Monday 09:15-09:45 time-off still exposes 09:00-09:30. Predicate checks only slot start, not appointment interval.", "priority": "HIGH"},
+      {"endpoint": "GET /api/availability/{doctor_id}/slots", "issue": "India timezone mismatch: weekly 09:00 becomes 09:00 UTC / 14:30 IST. Schedule input has no timezone and chips render browser-local times.", "priority": "HIGH"},
+      {"endpoint": "GET /api/availability/{doctor_id}/slots; POST /api/appointments", "issue": "Past Monday dates return available slots. Booking reuses the same engine with no future-time guard; past booking acceptance is a code-review finding, not separately executed.", "priority": "HIGH"},
+      {"endpoint": "POST /api/appointments", "issue": "A doctor can book themselves as the patient: HTTP 200 with patient_id==doctor_id. Endpoint uses get_current_user instead of patient-role enforcement.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "PUT /api/availability/me; GET /api/availability/{doctor_id}/slots", "issue": "Overlapping/duplicate weekly blocks accepted and return duplicate timestamps. Two identical blocks generate four slots instead of two; frontend uses timestamp as React key/test selector."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "DoctorAvailability", "issue": "Initial rapid edit lost newly added block: block-1 existed while editing but disappeared before slot selection. Retest after 1-second load settling passed. Likely overlapping StrictMode load calls: first completion clears loadingSchedule while second can still replace blocks. Save also remains enabled during initial loading.", "selector": "[data-testid='add-block-btn'], [data-testid='save-schedule-btn']", "priority": "HIGH"},
+      {"component": "Nav", "issue": "At 390px all role navigation links are hidden, with no mobile menu. Doctor Availability and patient Appointments are unreachable from navigation.", "selector": "[data-testid='nav-availability'], [data-testid='nav-appointments']", "priority": "HIGH"},
+      {"component": "DoctorAvailability option rendering", "issue": "Browser console logs invalid <span> child inside <option> for slot-minute options. Stack shows preview visual-editor instrumentation injecting data-ve-dynamic spans into {m}m. No pageerror crash observed.", "selector": "[data-testid='block-0-slot'] option", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Doctor availability mobile", "issues": ["Single 12-column schedule row compresses day/time/duration fields until values are truncated or unreadable; no page-wide horizontal overflow."]},
+      {"screen": "Availability / Appointments", "issues": ["Native date and datetime-local browser pickers are used rather than shadcn calendar.", "Time-off start/end have no visible From/To labels; datetime-local placeholders are not rendered, leaving two indistinguishable inputs.", "Top-right success toast temporarily overlaps identity/logout controls; a forced logout click during the toast did not activate navigation."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_availability_booking.py", "/app/test_reports/pytest/availability_results.xml", "/app/tests/availability_ui_playbook.py", "/app/tests/cleanup_availability_ui.py"],
+  "action_items": [
+    "Validate time-off datetimes and return 400/422 instead of 500.",
+    "Exclude any overlapping slot interval, not only starts; normalize India schedule timezone and reject past slots.",
+    "Enforce patient role for booking and deduplicate/reject overlapping weekly blocks.",
+    "Make schedule loading/editing concurrency-safe and disable Save until loading completes successfully.",
+    "Add mobile navigation, stack schedule controls on mobile, label time-off From/To, and prevent toasts covering logout.",
+    "Review code-only risks below, then rerun availability tests and browser flows."
+  ],
+  "critical_code_review_comments": [
+    "Booking check-then-insert is not atomic and there is no unique active doctor/slot index. Six simultaneous requests produced one success/five 409 in this test, so duplicate concurrent booking was NOT reproduced; race risk remains by inspection.",
+    "DoctorAvailability.load silently maps API failures to empty schedule/time-off. Save is enabled while loading and after failed loading, risking replacing existing hours with an empty list.",
+    "Appointments slot requests lack stale-response cancellation/generation guards; changing doctor/date rapidly can display an old grid. API errors are silently shown as no available slots; appointments reload has no catch/error state. Not reproduced in this run.",
+    "Availability slots are UTC but time-off converts local input to UTC; the doctor schedule has no visible timezone. Normalize server instants while interpreting recurring hours in a defined clinic timezone.",
+    "Critical informational loading/empty/status texts lack individual data-testid attributes, although all exercised availability and booking controls have usable selectors."
+  ],
+  "updated_files": ["/app/backend/tests/test_availability_booking.py", "/app/tests/availability_ui_playbook.py", "/app/tests/cleanup_availability_ui.py", "/app/test_reports/iteration_2.json"],
+  "success_rate": {"backend": "64.7% (11/17 final tests; 10/10 core API checks pass)", "frontend": "Core booking and disposable schedule-save flows pass; rapid initial edit failed once and mobile navigation fails; no aggregate percentage assigned"},
+  "test_credentials": "Read /app/memory/test_credentials.md. Used supplied doctor@wyshcare.io and patient@wyshcare.io / TestPass123!; created uniquely named TEST_ disposable doctor/patient accounts for write tests.",
+  "seed_data_creation": "No seed/reset scripts executed. Seeded doctor schedule never saved or changed: unsaved Add/edit/remove only. Schedule-save tested with disposable doctor. API fixture accounts, identities, schedules, time-off and appointments removed using only captured IDs. UI appointment apt_95d10f2dadd14a84 cancelled and deleted; UI doctor usr_6b02aa07fd6c4d13 and its schedule/identity deleted. Normal audit events retained.",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "Public URL comes from frontend/.env. Environment clock was 2026-11-07, so next Monday used was 2026-11-09 (not a hardcoded February date). Run: set -a; source /app/frontend/.env; set +a; pytest /app/backend/tests/test_availability_booking.py -v --junitxml=/app/test_reports/pytest/availability_results.xml. Six failures were identical on two runs; no flaky API tests. Initial UI block-loss failed once, passed with settle wait; treat race as unresolved. Avoid force-clicking nav logout while success toast covers it. Prior test_wyshcare_backend.py was not run: outdated fixed-date booking and missing cleanup make it unsafe/unrelated to this task. Playbook file preserves executed patient sequence; use external async harness to invoke run(page). App integrations are NOT MOCKED; no product code fixes were made.",
+  "rca of the issue": "Time-off 500: unchecked string dates reach datetime.fromisoformat. Overlap bug: s<=slot_start<e ignores slot_end. Duplicate grid: candidates list is not deduplicated and schedule accepts overlap. Past dates: no now/future filtering. India time shift: datetime.combine uses timezone.utc for unzoned recurring hours. Doctor-as-patient: generic auth dependency. Mobile navigation: hidden md:flex with no mobile replacement. Initial UI lost edit likely from StrictMode two load calls independently setting loadingSchedule=false and replacing blocks."
+}
