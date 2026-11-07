@@ -15,6 +15,10 @@ import Records from './pages/Records';
 import Appointments from './pages/Appointments';
 import WyshIdCard from './pages/WyshId';
 import DoctorAvailability from './pages/DoctorAvailability';
+import Documents from './pages/Documents';
+import CarePlan from './pages/CarePlan';
+import Consultations from './pages/Consultations';
+import Billing from './pages/Billing';
 
 function Protected({ children, roles }) {
   const { user, loading } = useAuth();
@@ -37,10 +41,14 @@ function HashRouter() {
       <Route path="/app/doctor" element={<Protected roles={['doctor']}><DoctorDashboard /></Protected>} />
       <Route path="/app/admin" element={<Protected roles={['admin']}><AdminDashboard /></Protected>} />
       <Route path="/app/ocr" element={<Protected><OcrUpload /></Protected>} />
+      <Route path="/app/documents" element={<Protected><Documents /></Protected>} />
       <Route path="/app/records" element={<Protected><Records /></Protected>} />
       <Route path="/app/appointments" element={<Protected><Appointments /></Protected>} />
       <Route path="/app/wyshid" element={<Protected><WyshIdCard /></Protected>} />
       <Route path="/app/availability" element={<Protected roles={['doctor']}><DoctorAvailability /></Protected>} />
+      <Route path="/app/care-plan" element={<Protected roles={['patient']}><CarePlan /></Protected>} />
+      <Route path="/app/consultations" element={<Protected><Consultations /></Protected>} />
+      <Route path="/app/billing" element={<Protected><Billing /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

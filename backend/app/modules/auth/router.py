@@ -58,6 +58,8 @@ class GoogleExchangeBody(BaseModel):
 
 @router.post("/signup")
 async def signup(body: SignupBody):
+    if body.role != "patient":
+        raise HTTPException(status_code=403, detail="Only patient self-registration is available")
     existing = await users.find_one({"email": body.email}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")

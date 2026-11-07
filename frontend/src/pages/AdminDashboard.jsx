@@ -2,22 +2,30 @@ import React, { useEffect, useState } from 'react';
 import Nav from '../components/Nav';
 import { api } from '../lib/api';
 import { Activity, Users, FileScan, Calendar, Shield } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({});
   const [users, setUsers] = useState([]);
   const [audit, setAudit] = useState([]);
+  const [calendar, setCalendar] = useState({ connected: false });
 
   useEffect(() => {
     (async () => {
-      const [s, u, a] = await Promise.all([
+      const [s, u, a, calendarStatus] = await Promise.all([
         api.get('/admin/stats').catch(() => ({ data: {} })),
         api.get('/admin/users').catch(() => ({ data: [] })),
         api.get('/admin/audit?limit=20').catch(() => ({ data: [] })),
+        api.get('/calendar/status').catch(() => ({ data: { connected: false } })),
       ]);
-      setStats(s.data); setUsers(u.data); setAudit(a.data);
+      setStats(s.data); setUsers(u.data); setAudit(a.data); setCalendar(calendarStatus.data || { connected: false });
     })();
   }, []);
+
+  const connectCalendar = async () => {
+    try { const { data } = await api.get('/calendar/connect'); window.location.assign(data.authorization_url); }
+    catch (error) { toast.error(error?.response?.data?.detail || 'Calendar connection could not start'); }
+  };
 
   return (
     <div className="min-h-screen bg-background grain">
@@ -38,6 +46,10 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-12 bento-cell p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" data-testid="calendar-organizer-card">
+            <div><div className="micro text-coral">Google Calendar organizer</div><div data-testid="calendar-organizer-status" className="text-sm mt-1">{calendar.connected ? `Connected: ${calendar.organizer_email}` : 'Connect one clinic organizer to create Google Meet links.'}</div></div>
+            <button onClick={connectCalendar} data-testid="connect-google-calendar-btn" className="btn-sharp border border-foreground px-4 py-2.5 text-sm">{calendar.connected ? 'Reconnect organizer' : 'Connect Google Calendar'}</button>
+          </div>
           <div className="col-span-12 lg:col-span-7 bento-cell p-7">
             <h2 className="font-outfit text-2xl tracking-tight mb-4">Users</h2>
             <table className="w-full text-sm" data-testid="admin-users-table">

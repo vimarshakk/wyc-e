@@ -49,11 +49,20 @@ Build the foundational production-grade platform for WYSHCARE — India's AI-Nat
 - Frontend production build: passed.
 - Browser smoke tests: doctor schedule save on desktop; mobile navigation to Availability with readable stacked controls.
 
+## Clinical workflows & interoperability update (2026-11-07)
+- Delivered secure prescription and lab-report intake (image/PDF), Claude Sonnet 4.5 extraction, reviewed EMR commits, secure file retrieval, longitudinal records, care-plan reminders, consultation notes, billing ledger, and Google Calendar/Meet organizer connection setup.
+- Security hardened: patient-only self-signup, session-expiry-aware downloads, appointment-scoped doctor record access, safe review commit recovery, patient-billing relationship checks, and protected callback validation.
+- ABDM: HIE-CM sandbox configuration and initial M2 HIP link-token/care-context transaction and idempotent callback foundation are implemented. Official M5 is tracked as WYSHCARE’s internal readiness gate, not an ABDM API milestone.
+- Verification: real managed OCR/storage image and PDF flows passed; frontend build passed; care security regression passed **8/8**.
+
 ## Backlog (prioritized)
 - P0: Telemedicine session shell (video room, encounter notes)
 - P0: Notifications (email/SMS/WhatsApp) — Twilio/Resend
 - P1: Lab report OCR with normalization
-- P1: Complete prescription OCR extraction pipeline hardening and review workflow
+- P1: Complete ABDM M1 ABHA orchestration, M2 care-context callback contract validation with sandbox, M3 consent/data-transfer, and patient P1–P4 flows using official test cases.
+- P1: Complete Google Calendar organizer OAuth and verify Meet guest-admission behavior separately from WYSHCARE appointment authorization.
+- P1: Enable Razorpay and external email/SMS/WhatsApp delivery after their secure provider credentials are supplied.
+- P2: Add UHI discovery/booking, HPR/HFR onboarding, NHCX eligibility/preauth/claim state machines, and ABDM M5 certification readiness evidence.
 - P1: Healthcare graph layer (Neo4j-ready edges)
 - P1: Consent architecture + DPDP-Act-aware data sharing flows
 - P2: Billing/invoices

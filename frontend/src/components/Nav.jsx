@@ -1,20 +1,25 @@
 import React from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, Sparkles } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 const navByRole = {
   patient: [
     { to: '/app/patient', label: 'Overview' },
-    { to: '/app/ocr', label: 'OCR Scan' },
+    { to: '/app/documents', label: 'Documents' },
     { to: '/app/records', label: 'Records' },
     { to: '/app/appointments', label: 'Appointments' },
+    { to: '/app/consultations', label: 'Consultations' },
+    { to: '/app/care-plan', label: 'Care Plan' },
+    { to: '/app/billing', label: 'Billing' },
     { to: '/app/wyshid', label: 'WyshID' },
   ],
   doctor: [
     { to: '/app/doctor', label: 'Overview' },
     { to: '/app/availability', label: 'Availability' },
     { to: '/app/appointments', label: 'Schedule' },
+    { to: '/app/consultations', label: 'Consultations' },
+    { to: '/app/billing', label: 'Billing' },
     { to: '/app/wyshid', label: 'WyshID' },
   ],
   admin: [
@@ -35,14 +40,11 @@ export default function Nav() {
     <header className="glass-nav sticky top-0 z-50 w-full" data-testid="app-nav">
       <div className="max-w-[1400px] mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-10 h-16">
         <Link to={user ? `/app/${user.role}` : '/'} className="flex items-center gap-2" data-testid="nav-logo">
-          <div className="w-7 h-7 bg-slateink dark:bg-bone flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-coral" />
-          </div>
-          <span className="font-outfit text-lg tracking-tight font-medium">WyshCare</span>
+          <img src="https://static.wixstatic.com/media/22cc26_3e80923df3954ea8a068dbbad8a2fbb6~mv2.png/v1/crop/x_171,y_276,w_965,h_381/fill/w_402,h_116,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/wyshcare.png" alt="WyshCare" data-testid="nav-brand-logo" className="h-7 w-auto max-w-32 object-contain object-left" />
           <span className="micro text-coral ml-1 hidden sm:inline">AI-Native</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1">
           {items.map((it) => (
             <NavLink
               key={it.to}
@@ -60,7 +62,7 @@ export default function Nav() {
             data-testid="mobile-nav-select"
             value={items.some((item) => item.to === location.pathname) ? location.pathname : ''}
             onChange={(event) => navigate(event.target.value)}
-            className="md:hidden min-w-0 max-w-24 border border-border bg-transparent px-2 py-1.5 text-xs"
+            className="lg:hidden min-w-0 max-w-24 border border-border bg-transparent px-2 py-1.5 text-xs"
           >
             {items.map((item) => <option key={item.to} value={item.to}>{item.label}</option>)}
           </select>

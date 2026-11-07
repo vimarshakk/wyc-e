@@ -1,0 +1,78 @@
+{
+  "summary": "Tested public APIs twice, real managed OCR/storage, full patient/doctor browser workflows, synthetic PDF approval/EMR, admin Calendar screen, responsive layouts and production build. Care regression: 14/17 pass twice. Security regression: 2 pass, 3 fail, 3 blocked/skipped. No product code changed. Critical administrator self-signup and expired-session file download vulnerabilities confirmed.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint":"POST /api/auth/signup; GET /api/abdm/status","issue":"Unauthenticated signup accepts role=admin (200); returned token immediately accesses admin-only ABDM status (200). Role dependencies therefore do not provide an effective administrator boundary.","priority":"CRITICAL"},
+      {"endpoint":"GET /api/ocr/files/{file_id}","issue":"Expired synthetic Google-style session is rejected by /auth/me (401) but downloads its owner's protected file (200). Download bypasses common authentication dependency and never checks session expiry.","priority":"CRITICAL"},
+      {"endpoint":"GET /api/calendar/connect","issue":"Authorization URL uses http://care-platform-v1.cluster-7.preview.emergentcf.cloud/api/calendar/callback instead of the public HTTPS callback. Confirmed twice; organizer OAuth was intentionally not invoked.","priority":"HIGH"},
+      {"endpoint":"POST /api/ocr/documents/lab_report","issue":"Two-page synthetic PDF returns extraction_status=complete but omits page-two Glucose observation. Confirmed twice; rendering calls load_page(0) only without disclosing truncation.","priority":"HIGH"},
+      {"endpoint":"POST /api/abdm/v3/hip/token/on-generate-token","issue":"Missing secret returns 401, but incorrect nonempty secret returns 500. Logs confirm KeyError: ABDM_CALLBACK_SHARED_SECRET at router.py:104. Confirmed twice.","priority":"HIGH"},
+      {"endpoint":"GET /api/abdm/status","issue":"sandbox_configured=false in this running environment, contrary to the supplied configuration briefing. Callback shared secret unavailable in server/test configuration. Successful correlation, malformed authenticated body and duplicate idempotency cannot be verified.","priority":"HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component":"Documents","issue":"After approving corrected JSON and reloading, the disabled review textarea displays original extracted data rather than reviewed_extraction. Reproduced for PNG and PDF; API confirms corrected notes are stored.","selector":"[data-testid='document-review-json']","priority":"HIGH"},
+      {"component":"Documents","issue":"No original-document preview or protected download control exists. Queue only shows kind/date, so patient cannot compare source with extracted values during review or retrieve stored report.","selector":"[data-testid='document-review-list']","priority":"MEDIUM"},
+      {"component":"Patient navigation","issue":"Consultations is absent from desktop/mobile patient navigation, and Appointments has no workspace/join link. Patient prepare/join works only by directly opening /app/consultations.","selector":"[data-testid='nav-consultations']","priority":"HIGH"},
+      {"component":"Nav tablet","issue":"At 768px every patient workspace overflows to 899px; logout right edge measured at 881px, offscreen. Desktop navigation switches on at md before it fits. Mobile dropdown works at 390px.","selector":"[data-testid='app-nav'], [data-testid='nav-logout']","priority":"MEDIUM"},
+      {"component":"CarePlan","issue":"Completed reminder remains under Upcoming with identical title/time and no completed label; only its completion icon disappears. Users cannot distinguish completed from pending reminder without inference.","selector":"[data-testid='reminders-list']","priority":"MEDIUM"},
+      {"component":"Billing patient option","issue":"Console warns that a span is an invalid child of option; preview visual-editor instrumentation injects data-ve-dynamic span around patient name. Selection works and no pageerror occurred.","selector":"[data-testid='invoice-patient-select'] option","priority":"LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen":"CarePlan / Billing forms","issues":["Native datetime-local controls used instead of shadcn calendar; due-date inputs have no visible label.","Multiple fields rely solely on placeholders; inputs lack explicit associated labels."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_care_workflows.py",
+    "/app/backend/tests/test_care_security.py",
+    "/app/test_reports/pytest/care_workflows_results.xml",
+    "/app/test_reports/pytest/care_workflows_retest.xml",
+    "/app/test_reports/pytest/care_security_results.xml",
+    "/app/test_reports/pytest/care_security_retest.xml",
+    "/app/tests/care_ui_playbook.py",
+    "/app/tests/care_pdf_ui_playbook.py",
+    "/app/tests/care_admin_ui_playbook.py",
+    "/app/tests/cleanup_care_ui.py",
+    "/app/test_reports/frontend_build.log"
+  ],
+  "action_items": [
+    "Disable public administrator signup; introduce protected provisioning. Review self-provisioned doctor access to PHI.",
+    "Use shared authentication/session expiry checks for protected downloads; enforce patient relationship/consent authorization.",
+    "Use configured public HTTPS OAuth callback or correctly trusted forwarded scheme/host; ensure provider callback registration matches. Research confirmed https://fastapi.tiangolo.com/advanced/behind-a-proxy/.",
+    "Extract all PDF pages or explicitly reject/label unsupported multipage files before approval.",
+    "Provision ABDM configuration server-side without displaying values; handle missing callback config with safe 4xx/503, then rerun local callback correlation/idempotency tests. Do not submit external patient transactions.",
+    "Render reviewed_extraction after approval; add protected source preview/download and patient consultation navigation.",
+    "Fix tablet header breakpoint; label due-date fields and show completed reminder state.",
+    "Review code-only risks below and rerun regression. Keep payment/external reminder delivery explicitly unavailable until configured."
+  ],
+  "critical_code_review_comments": [
+    "HIGH, code-only: OCR _can_access and file download grant every doctor/admin access to every patient's document without appointment relationship or consent. Public doctor signup compounds this exposure. Other patient access was tested and correctly denied.",
+    "HIGH, code-only: protected file auth query parameter can place JWT/session tokens into ingress/access logs; prefer Authorization headers or short-lived purpose-bound download URLs.",
+    "HIGH, code-only: synchronous requests storage PUT/GET execute inside async OCR handlers and can block the event loop for up to 120 seconds; offload blocking I/O and PDF rendering.",
+    "MEDIUM, code-only: LLM JSON parsing failure returns a truthy fallback dict with _raw, so upload reports extraction complete even when parsing failed. Raw model output can also enter logs; validate extraction schema and redact clinical data.",
+    "MEDIUM, code-only: review changes state to approved before inserting its EMR record; DB failure can permanently strand an approved document because later reviews return early. Use transaction/recoverable commit.",
+    "MEDIUM, code-only: billing create accepts any existing patient, not just a doctor's billable relationship; the patient-list filter is not enforced in create_invoice.",
+    "MEDIUM, code-only: ABDM callback parses raw JSON without a Pydantic schema and records the dedup event before token validation. A missing-token event can consume correlation and prevent a later valid token; crash/retry cannot recover processing. Valid-secret paths remain untested due missing configuration.",
+    "MEDIUM, code-only: consultation complete does not update appointment status or guard note/join writes after completion/cancellation. Completed appointment remains scheduled, occupying its slot; lifecycle semantics need explicit enforcement."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_care_security.py",
+    "/app/tests/care_pdf_ui_playbook.py",
+    "/app/tests/care_admin_ui_playbook.py",
+    "/app/tests/cleanup_care_ui.py",
+    "/app/test_reports/iteration_3.json"
+  ],
+  "success_rate": {
+    "backend":"72.7% executed cases (16 pass / 22 executed), plus 3 skipped; care suite 82.4% (14/17), security suite 40% (2/5 executed). Stopped additional backend testing after security failure rate exceeded 50%.",
+    "frontend":"All core workflow actions passed; corrections display, patient navigation, reminder status and tablet layout defects remain. No aggregate percentage assigned. Production build passes."
+  },
+  "test_credentials":"Read /app/memory/test_credentials.md and /app/auth_testing.md before auth. All three documented accounts successfully authenticated through API; isolated documented-admin browser login passed. Writes used disposable TEST_ patients/doctors only.",
+  "seed_data_creation":"No seed/reset/migration run. Pytest fixtures created synthetic PNG/JPEG/WEBP/PDF uploads, disposable accounts, preferences/reminders, invoice, appointment/consultation/note and expired session; cleanup used captured IDs. Local ABDM fixture was a synthetic database correlation only, never an external patient transaction, and was removed. Browser captured users usr_faba422750d6442d, usr_f5f5d28b457945f1, usr_35114180f52e4b10 and their captured documents/reminder/invoice/appointment/consultation/note were removed and database cleanup verified. Synthetic managed-storage objects remain because no delete API exists; normal audit events retained. Other runs' TEST_ data untouched.",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent":"Source frontend/.env before pytest; use public REACT_APP_BACKEND_URL. Care suite reused unchanged, ran twice with identical three failures. Security initial fixture KeyError was corrected to skip credential-blocked checks; final 2 pass/3 fail/3 skip. All tests real APIs, NO MOCKED production integrations. Synthetic expired session and local callback correlation are test-only fixtures. Google organizer OAuth and external ABDM patient flows intentionally not invoked. Razorpay checkout 503 Payments are not configured yet and external delivery not_configured are expected/pass. Exact configured Google secret absent from checked responses/backend logs; complete ABDM secret-value leakage checks unavailable because ABDM secrets missing. No actual secret values displayed. Browser playbooks executed via scope={}; exec(open(path).read(),scope); await scope['run'](page). First exec without explicit scope did not launch workflow; corrected. PDF/admin combined script failed after rapid logout/navigation left old patient auth visible; isolated admin login passed, and logout wait added to test harness. No product auth fix or assertion of a reproducible admin login defect. Native option span warning is preview instrumentation. Build succeeds with Browserslist staleness and Node fs deprecation warnings.",
+  "rca of the issue":"Admin escalation: SignupBody allows admin and signup directly persists requested role. Expired download: custom token lookup lacks expires_at/user-existence validation used in core/deps.py. Calendar: request.url_for reflects rewritten internal ingress HTTP host. PDF truncation: _to_image_for_extraction renders only first page. ABDM 500: nonempty incorrect header evaluates os.environ[missing callback key]; missing header short-circuits safely. Corrections UI: Documents.select serializes doc.extracted instead of reviewed_extraction. Tablet overflow: hidden md:flex exposes seven links plus identity at 768px with no fitting/wrapping strategy. Completed reminder state: JSX omits status label and still renders all reminders in Upcoming."
+}

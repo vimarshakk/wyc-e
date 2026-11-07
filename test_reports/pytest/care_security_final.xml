@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="8" time="4.372" timestamp="2026-11-07T14:23:51.017682+00:00" hostname="agent-env-503de4d2-e152-45b6-a458-82a620059f71"><testcase classname="backend.tests.test_care_security" name="test_admin_endpoints_protected" time="2.590" /><testcase classname="backend.tests.test_care_security" name="test_admin_status_truthful" time="0.258" /><testcase classname="backend.tests.test_care_security" name="test_callback_missing_and_wrong_secret" time="0.498" /><testcase classname="backend.tests.test_care_security" name="test_callback_correlation_validation" time="0.264" /><testcase classname="backend.tests.test_care_security" name="test_callback_duplicate_is_idempotent" time="0.324" /><testcase classname="backend.tests.test_care_security" name="test_callback_invalid_body_returns_4xx" time="0.129"><failure message="AssertionError: Malformed callback returned HTTP 500&#10;assert 500 in (400, 422)&#10; +  where 500 = &lt;Response [500]&gt;.status_code">ctx = {'admin': {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfYjE2ZmRjNDc3YWI5NGQ5OSIsInJvb...tabase(MongoClient(host=['localhost:27017'], document_class=dict, tz_aware=False, connect=True), 'test_database'), ...}
+
+    def test_callback_invalid_body_returns_4xx(ctx):
+        if not ctx['callback_headers']:
+            pytest.skip('Opaque callback credential unavailable to test process')
+        r = call(ctx,'POST','/abdm/v3/hip/token/on-generate-token',ctx['callback_headers'],json=[])
+&gt;       assert r.status_code in (400,422), 'Malformed callback returned HTTP '+str(r.status_code)
+E       AssertionError: Malformed callback returned HTTP 500
+E       assert 500 in (400, 422)
+E        +  where 500 = &lt;Response [500]&gt;.status_code
+
+backend/tests/test_care_security.py:103: AssertionError</failure></testcase><testcase classname="backend.tests.test_care_security" name="test_responses_and_logs_no_configured_secrets" time="0.004" /><testcase classname="backend.tests.test_care_security" name="test_public_signup_cannot_grant_admin" time="0.142" /></testsuite></testsuites>

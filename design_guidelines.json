@@ -1,129 +1,104 @@
 {
-  "project_name": "WYSHCARE",
-  "domain": "Healthcare AI Operating System",
-  "theme": "Light Primary with Dark Mode Support",
-  "archetype": "Archetype 4 (Swiss & High-Contrast) - Modified for Pristine Health-Tech",
-  "design_philosophy": {
-    "core_principles": [
-      "AI-Native and Anticipatory: Do not feel like a static CRUD app. Design should imply intelligence and proactiveness.",
-      "Investor-Ready Polish: Epic/Cerner level architectural depth, but Stripe-level surface polish and typography.",
-      "Asymmetric & Organic Tension: Avoid center-aligned 'Bootstrap' looks. Use 'Bento' grid layouts with varying spans for dashboards.",
-      "Optical Clarity: Do not use muddy shadows or generic mint-green. Rely on high contrast (deep slate vs bone white) and sharp bright accents for AI interactions."
-    ],
-    "anti_patterns": [
-      "NO purple/violet gradients.",
-      "NO Inter, Roboto, or generic sans-serif fonts for headings.",
-      "NO centered, equal-spacing symmetric layouts.",
-      "NO generic card grids with soft drop shadows.",
-      "NO mint-green or generic medical blue as primary colors."
-    ]
-  },
-  "typography": {
-    "font_families": {
-      "headings": {
-        "name": "Outfit",
-        "css_class": "font-outfit",
-        "usage": "H1, H2, H3, large marketing numbers. Use tracking-tighter for H1/H2."
+  "project_name": "WYSHCARE — India's AI-Native Healthcare Operating System",
+  "version": "2.0.0-2026",
+  "app_type": "hybrid_fullstack",
+  "theme": {
+    "default_mode": "light",
+    "supports_toggle": true,
+    "archetype": "Swiss Clinical Precision with Organic Humanist Accents",
+    "primary_fonts": {
+      "headings": "Outfit, system-ui, sans-serif",
+      "body": "IBM Plex Sans, system-ui, sans-serif",
+      "mono_data": "IBM Plex Mono, monospace"
+    },
+    "color_palette": {
+      "light": {
+        "background": "#F7F7F5",
+        "card": "#FFFFFF",
+        "foreground": "#0A0F1A",
+        "muted": "#EEEEEA",
+        "muted_foreground": "#52525B",
+        "border": "#E4E4E7",
+        "accent": "#FF5722",
+        "clinical_green": "#059669",
+        "clinical_blue": "#0284C7",
+        "clinical_amber": "#D97706"
       },
-      "body": {
-        "name": "IBM Plex Sans",
-        "css_class": "font-plex-sans",
-        "usage": "Dashboard data, paragraphs, form labels, small text."
-      },
-      "mono": {
-        "name": "IBM Plex Mono",
-        "css_class": "font-plex-mono",
-        "usage": "AI confidence scores, lab record numbers, audit logs, dosage metadata."
+      "dark": {
+        "background": "#05070A",
+        "card": "#0A0F1A",
+        "foreground": "#F7F7F5",
+        "muted": "#181E2A",
+        "muted_foreground": "#94A3B8",
+        "border": "#1E293B",
+        "accent": "#FF5722",
+        "clinical_green": "#10B981",
+        "clinical_blue": "#38BDF8",
+        "clinical_amber": "#F59E0B"
       }
-    },
-    "hierarchy": {
-      "h1": "text-5xl sm:text-6xl tracking-tighter font-medium leading-tight",
-      "h2": "text-4xl sm:text-5xl tracking-tight font-medium leading-tight",
-      "h3": "text-2xl sm:text-3xl tracking-tight font-medium",
-      "h4": "text-lg sm:text-xl font-medium",
-      "body": "text-base leading-relaxed",
-      "small": "text-sm text-muted-foreground",
-      "micro": "text-xs tracking-[0.2em] uppercase font-semibold"
-    }
-  },
-  "color_palette": {
-    "light_mode": {
-      "background": "#F7F7F5",
-      "surface": "#FFFFFF",
-      "surface_muted": "#F0F0EA",
-      "text_primary": "#0A0F1A",
-      "text_secondary": "#52525B",
-      "border": "#E4E4E1",
-      "primary": "#0A0F1A",
-      "primary_foreground": "#FFFFFF",
-      "accent_ai": "#FF5722",
-      "accent_ai_foreground": "#FFFFFF",
-      "success": "#10B981",
-      "warning": "#F59E0B"
-    },
-    "dark_mode": {
-      "background": "#05070A",
-      "surface": "#0F141E",
-      "surface_muted": "#1A2233",
-      "text_primary": "#F7F7F5",
-      "text_secondary": "#A1A1AA",
-      "border": "#27272A",
-      "primary": "#F7F7F5",
-      "primary_foreground": "#0A0F1A",
-      "accent_ai": "#FF5722",
-      "accent_ai_foreground": "#FFFFFF",
-      "success": "#10B981",
-      "warning": "#F59E0B"
     }
   },
   "layout_and_spacing": {
-    "spacing_scale": "Use generous padding: p-6, p-8, p-12. Avoid cramped p-2/p-4 on main containers.",
-    "marketing_layout": "Asymmetric grids. Use 'Tetris' grid mode (e.g., col-span-8 and col-span-4). Avoid 50/50 generic splits.",
-    "dashboard_layout": "Bento 'Control Room' grids (gap-4 or gap-6). Use col-span-2 row-span-2 for primary data charts. Make full use of screen real estate without feeling cluttered.",
-    "alignment": "Always left-align typography unless specifically a hero callout. Optical alignment for icons and text."
+    "hero_grid_mode": "MODE A: Tetris Bento Grid with Asymmetrical Dynamic Spans",
+    "workspace_grid_mode": "MODE B: High Density 4-Column Clinical Matrix",
+    "container_padding": "p-6 md:p-8 lg:p-12",
+    "card_radius": "rounded-sm md:rounded-md",
+    "header_nav_style": "glass-nav sticky top-0 z-50 backdrop-blur-xl bg-white/75 dark:bg-[#0A0F1A]/75 border-b border-border"
   },
-  "surfaces_and_components": {
-    "buttons": "Sharp corners (rounded-none or rounded-sm). Flat colors. On hover, translate-y-[-2px] with a subtle sharp shadow.",
-    "navigation": "Crystal Glassmorphism. backdrop-blur-xl, bg-white/70 (light) or bg-black/60 (dark), 1px subtle bottom border (border-white/20). Must be z-50.",
-    "cards_dashboards": "Neo-Brutalist utility. 1px solid border (border-border), flat backgrounds. No muddy drop shadows. On hover, subtle lift.",
-    "ai_ocr_preview": "Use the 'Tracing Beam' effect. A dynamic 1px glowing border or highly saturated border (accent_ai color) to indicate active AI processing.",
-    "tables": "Cardless design. Dense, data-rich rows with 1px bottom border on rows. Use font-plex-mono for IDs, dates, and numbers."
+  "typography_rules": {
+    "H1": "text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground font-outfit",
+    "H2": "text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-outfit",
+    "H3": "text-xl sm:text-2xl font-semibold tracking-tight text-foreground font-outfit",
+    "H4": "text-lg sm:text-xl font-medium text-foreground font-outfit",
+    "body": "text-base leading-relaxed text-foreground/90 font-plex-sans",
+    "micro_label": "text-xs uppercase tracking-[0.2em] font-semibold text-muted-foreground font-plex-mono",
+    "wysh_id_badge": "font-plex-mono text-sm tracking-wider font-semibold text-accent bg-accent/10 px-3 py-1 rounded-sm border border-accent/20"
   },
-  "motion_and_interactions": {
-    "scroll": "Use Lenis for smooth momentum scrolling on the landing page.",
-    "hover_states": "Interactive elements must visibly shift (color, subtle transform, or border glow). Focus states must have high contrast rings (ring-2 ring-primary).",
-    "ai_loading": "Use ASCII art or smooth skeleton loaders with a sweeping accent_ai gradient instead of generic spinners."
-  },
-  "media_and_assets": {
-    "images": [
-      {
-        "category": "hero_background",
-        "url": "https://static.prod-images.emergentagent.com/jobs/bfc2e3d0-665c-49fe-8a20-947f475771d1/images/fd2f59785e924d1d06ab7c2ebeaf6da732bef4b2e6a976d844a75dfe010290db.png",
-        "description": "Abstract, high-end 3D rendering of a futuristic medical identity card floating with glowing data points. Use in landing page hero."
-      },
-      {
-        "category": "ai_ocr_preview",
-        "url": "https://static.prod-images.emergentagent.com/jobs/bfc2e3d0-665c-49fe-8a20-947f475771d1/images/0d8d5bb0827b78229c010ed1f8014aceec5da9f6fbbe9858e8d3f89d34742a57.png",
-        "description": "Abstract glassmorphism health data visualization floating. Use in the OCR Prescription Upload section."
-      },
-      {
-        "category": "doctor_clinic",
-        "url": "https://images.unsplash.com/photo-1758691461888-b74515208d7a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzV8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBob3NwaXRhbCUyMGFyY2hpdGVjdHVyZSUyMG9yJTIwZG9jdG9yJTIwaW4lMjBtb2Rlcm4lMjBjbGluaWN8ZW58MHx8fHwxNzc4NzU3OTI0fDA&ixlib=rb-4.1.0&q=85",
-        "description": "Doctor typing on computer in office. Use for trust signals or provider portal preview."
-      },
-      {
-        "category": "hospital_architecture",
-        "url": "https://images.unsplash.com/photo-1777269749032-d8d458ae594d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzV8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3NwaXRhbCUyMGFyY2hpdGVjdHVyZSUyMG9yJTIwZG9jdG9yJTIwaW4lMjBtb2Rlcm4lMjBjbGluaWN8ZW58MHx8fHwxNzc4NzU3OTI0fDA&ixlib=rb-4.1.0&q=85",
-        "description": "Clean, modern hospital corridor. Use for about section or investor-grade architectural background."
+  "key_features_visual_design": {
+    "ocr_extraction_workflow": {
+      "layout": "Split-Screen (Left: Interactive Document Canvas with bounding boxes, Right: Extracted JSON/Form Fields)",
+      "confidence_badge": "Color-coded pills: Emerald >= 90%, Amber 70-89%, Red < 70%",
+      "actions": "One-click 'Approve & Commit to EMR' button with micro-animation pulse trace"
+    },
+    "telemedicine_workspace": {
+      "layout": "3-Column Workspace (Col 1: Patient Vitals & EMR Timeline, Col 2: Live WebRTC HD Video + Audio Bar, Col 3: Realtime AI Consultation Notes / SOAP Composer)",
+      "controls": "Floating Glass Control Bar with Mute, Camera, Screen Share, Prescription Drawer, and End Session",
+      "data_test_ids": ["video-canvas", "mic-toggle-btn", "camera-toggle-btn", "soap-note-textarea", "issue-prescription-btn"]
+    },
+    "longitudinal_emr_timeline": {
+      "style": "Vertical Rail with Dated Nodes (Encounter, Lab Report, AI Extraction, Prescription, Vitals)",
+      "filter_bar": "Segmented Tab control for All / Labs / Prescriptions / Telemedicine / Billing"
+    },
+    "care_reminders_system": {
+      "channels": ["in_app", "email", "sms", "whatsapp"],
+      "channel_badges": {
+        "in_app": "bg-blue-500/10 text-blue-600 border-blue-200",
+        "email": "bg-purple-500/10 text-purple-600 border-purple-200",
+        "sms": "bg-amber-500/10 text-amber-600 border-amber-200",
+        "whatsapp": "bg-emerald-500/10 text-emerald-600 border-emerald-200"
       }
-    ]
+    },
+    "razorpay_billing": {
+      "invoice_card": "Minimalist High-Contrast Receipt Card with Line Items, GSTIN calculation, and Instant Razorpay Checkout Trigger"
+    }
+  },
+  "image_assets": {
+    "medical_radiology_mri": "https://images.unsplash.com/photo-1666214280352-db292c05fd80?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwbGFib3JhdG9yeSUyMHNjYW4lMjBwYXRpZW50JTIwaGVhbHRoJTIwY2FyZXxlbnwwfHx8fDE3OTQwNTQzNTR8MA&ixlib=rb-4.1.0&q=85",
+    "mri_brain_scan_sheet": "https://images.unsplash.com/photo-1631563019676-dade0dbdb8fc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHwyfHxtZWRpY2FsJTIwbGFib3JhdG9yeSUyMHNjYW4lMjBwYXRpZW50JTIwaGVhbHRoJTIwY2FyZXxlbnwwfHx8fDE3OTQwNTQzNTR8MA&ixlib=rb-4.1.0&q=85",
+    "patient_examination_room": "https://images.unsplash.com/photo-1666214275099-0ca566aefe26?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHwzfHxtZWRpY2FsJTIwbGFib3JhdG9yeSUyMHNjYW4lMjBwYXRpZW50JTIwaGVhbHRoJTIwY2FyZXxlbnwwfHx8fDE3OTQwNTQzNTR8MA&ixlib=rb-4.1.0&q=85",
+    "patient_care_bed": "https://images.unsplash.com/photo-1666214280165-20e3d73d70bf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHw0fHxtZWRpY2FsJTIwbGFib3JhdG9yeSUyMHNjYW4lMjBwYXRpZW50JTIwaGVhbHRoJTIwY2FyZXxlbnwwfHx8fDE3OTQwNTQzNTR8MA&ixlib=rb-4.1.0&q=85"
   },
   "instructions_to_main_agent": [
-    "Install and configure 'Outfit', 'IBM Plex Sans', and 'IBM Plex Mono' fonts from Google Fonts.",
-    "Do not use Shadcn 'Card' wrapper for everything. Use raw divs with 1px borders and distinct padding for custom bento grids.",
-    "Ensure all buttons, form inputs, and interactive elements have appropriate 'data-testid' attributes (e.g., data-testid='upload-prescription-button').",
-    "Use Phosphor Icons or Lucide React. Phosphor is preferred for dense data tables.",
-    "Use framer-motion for page transitions and micro-interactions on dashboard widgets.",
-    "For the OCR extraction preview, ensure the UI explicitly shows 'Confidence Scores' in the IBM Plex Mono font to sell the AI-native aspect."
+    "Ensure all interactive components have explicit data-testid attributes formatted in kebab-case (e.g. data-testid='upload-lab-report-input').",
+    "Use JS React components (.jsx/.js) matching existing project conventions.",
+    "Rely on existing Shadcn primitives in src/components/ui/ (sonner, dialog, table, tabs, dropdown-menu, select, calendar).",
+    "Ensure full multi-role RBAC representation (Patient, Doctor, Administrator) with WyshID generation and management.",
+    "Implement Sonner toasts for clear status feedback upon document OCR completion, Razorpay payments, and reminder dispatch."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Avoid generic, centered, flat AI templates. Use dark accents, sharp subtle borders, and micro-animations.",
+    "Never apply transition: all. Use specific property transitions.",
+    "Use high contrast colors for readable text across light and dark modes.",
+    "Use lucide-react icons for all clinical indicators, navigation, and badges."
   ]
 }

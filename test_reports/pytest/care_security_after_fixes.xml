@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="3" tests="8" time="3.110" timestamp="2026-11-07T13:35:27.724812+00:00" hostname="agent-env-503de4d2-e152-45b6-a458-82a620059f71"><testcase classname="backend.tests.test_care_security" name="test_admin_endpoints_protected" time="2.392" /><testcase classname="backend.tests.test_care_security" name="test_admin_status_truthful" time="0.127"><failure message="assert False is True">ctx = {'admin': {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfYjE2ZmRjNDc3YWI5NGQ5OSIsInJvb...tabase(MongoClient(host=['localhost:27017'], document_class=dict, tz_aware=False, connect=True), 'test_database'), ...}
+
+    def test_admin_status_truthful(ctx):
+        r = call(ctx,'GET','/abdm/status',ctx['admin'])
+        assert r.status_code == 200
+&gt;       assert r.json()['sandbox_configured'] is True
+E       assert False is True
+
+backend/tests/test_care_security.py:62: AssertionError</failure></testcase><testcase classname="backend.tests.test_care_security" name="test_callback_missing_and_wrong_secret" time="0.296"><failure message="assert (503 == 401)&#10; +  where 503 = &lt;Response [503]&gt;.status_code">ctx = {'admin': {'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfYjE2ZmRjNDc3YWI5NGQ5OSIsInJvb...tabase(MongoClient(host=['localhost:27017'], document_class=dict, tz_aware=False, connect=True), 'test_database'), ...}
+
+    def test_callback_missing_and_wrong_secret(ctx):
+        for headers in [None,{'X-Callback-Secret':'TEST_wrong'}]:
+            r = call(ctx,'POST','/abdm/v3/hip/token/on-generate-token',headers,json={'requestId':ctx['correlation'],'linkToken':'TEST_never_accepted'})
+&gt;           assert r.status_code == 401 and r.json()['detail'] == 'Unauthorized callback'
+E           assert (503 == 401)
+E            +  where 503 = &lt;Response [503]&gt;.status_code
+
+backend/tests/test_care_security.py:71: AssertionError</failure></testcase><testcase classname="backend.tests.test_care_security" name="test_callback_correlation_validation" time="0.000"><skipped type="pytest.skip" message="Opaque callback credential unavailable to test process">/app/backend/tests/test_care_security.py:77: Opaque callback credential unavailable to test process</skipped></testcase><testcase classname="backend.tests.test_care_security" name="test_callback_duplicate_is_idempotent" time="0.000"><skipped type="pytest.skip" message="Opaque callback credential unavailable to test process">/app/backend/tests/test_care_security.py:85: Opaque callback credential unavailable to test process</skipped></testcase><testcase classname="backend.tests.test_care_security" name="test_callback_invalid_body_returns_4xx" time="0.000"><skipped type="pytest.skip" message="Opaque callback credential unavailable to test process">/app/backend/tests/test_care_security.py:101: Opaque callback credential unavailable to test process</skipped></testcase><testcase classname="backend.tests.test_care_security" name="test_responses_and_logs_no_configured_secrets" time="0.001" /><testcase classname="backend.tests.test_care_security" name="test_public_signup_cannot_grant_admin" time="0.128" /></testsuite></testsuites>

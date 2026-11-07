@@ -36,21 +36,33 @@ Return STRICTLY valid JSON with this exact schema:
 
 Output ONLY the JSON object. No markdown fences. No commentary."""
 
+LAB_EXTRACT_SYS = """You are a medical laboratory-report OCR specialist for WyshCare healthcare platform.
+Extract only clearly readable values and return strictly valid JSON:
+{"lab_name":"string or null","patient_name":"string or null","report_date":"YYYY-MM-DD or null","observations":[{"name":"string","value":"string","unit":"string or null","reference_range":"string or null","flag":"high|low|normal|unknown","confidence":0.0}],"notes":"string or null","overall_confidence":0.0}
+Output only JSON without markdown or commentary."""
+
 
 async def extract_prescription(image_bytes: bytes) -> dict:
     """Send image to Claude Sonnet 4.5 vision and return structured prescription JSON."""
     if not settings.EMERGENT_LLM_KEY:
         raise RuntimeError("EMERGENT_LLM_KEY missing")
 
+    return await extract_medical_document(image_bytes, "prescription")
+
+
+async def extract_medical_document(image_bytes: bytes, document_kind: str) -> dict:
+    if not settings.EMERGENT_LLM_KEY:
+        raise RuntimeError("EMERGENT_LLM_KEY missing")
+    system_message = PRESCRIPTION_EXTRACT_SYS if document_kind == "prescription" else LAB_EXTRACT_SYS
     chat = LlmChat(
         api_key=settings.EMERGENT_LLM_KEY,
         session_id=f"ocr-{uuid.uuid4().hex[:12]}",
-        system_message=PRESCRIPTION_EXTRACT_SYS,
+        system_message=system_message,
     ).with_model("anthropic", "claude-sonnet-4-5-20250929")
 
     img_b64 = base64.b64encode(image_bytes).decode()
     msg = UserMessage(
-        text="Extract structured prescription data from this image. Return only JSON.",
+        text=f"Extract structured {document_kind} data from this image. Return only JSON.",
         file_contents=[ImageContent(image_base64=img_b64)],
     )
     raw = await chat.send_message(msg)
@@ -72,5 +84,5 @@ def _parse_json(raw: str) -> dict:
                 return json.loads(m.group(0))
             except Exception:
                 pass
-        logger.error(f"Failed parsing LLM JSON: {raw[:500]}")
-        return {"medications": [], "overall_confidence": 0.0, "_raw": raw[:500]}
+        logger.warning("Medical extraction did not return valid JSON")
+        raise ValueError("Medical extraction did not return valid JSON")

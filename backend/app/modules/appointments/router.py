@@ -62,6 +62,15 @@ async def book(body: BookBody, user: dict = Depends(require_role("patient"))):
     except DuplicateKeyError:
         raise HTTPException(status_code=409, detail="Slot is not available")
     appt.pop("_id", None)
+    if body.mode == "telemedicine":
+        from ..calendar.service import create_or_update_meet_event
+        try:
+            video_details = await create_or_update_meet_event(appt)
+            await appointments.update_one({"appointment_id": appt["appointment_id"]}, {"$set": video_details})
+            appt.update(video_details)
+        except Exception:
+            appt["video_link_status"] = "preparing"
+            await appointments.update_one({"appointment_id": appt["appointment_id"]}, {"$set": {"video_link_status": "preparing"}})
     await write_audit(user["user_id"], "appointment.book", "appointment", appt["appointment_id"],
                       {"doctor_id": body.doctor_id})
     return appt

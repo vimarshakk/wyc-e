@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from typing import Literal, Optional, List
-from ...core.db import records, prescriptions
+from ...core.db import appointments, consultations, lab_reports, prescriptions, records
 from ...core.deps import get_current_user
 from ...core.audit import write_audit
 
@@ -56,10 +56,13 @@ async def list_records(patient_id: Optional[str] = None, user: dict = Depends(ge
 
 @router.get("/timeline")
 async def timeline(user: dict = Depends(get_current_user)):
-    """Longitudinal merged timeline: records + prescriptions."""
+    """Longitudinal merged timeline of reviewed records and care activity."""
     pid = user["user_id"]
     recs = await records.find({"patient_id": pid}, {"_id": 0}).sort("created_at", -1).limit(200).to_list(200)
     pres = await prescriptions.find({"patient_id": pid}, {"_id": 0}).sort("created_at", -1).limit(200).to_list(200)
+    labs = await lab_reports.find({"patient_id": pid}, {"_id": 0}).sort("created_at", -1).limit(200).to_list(200)
+    appts = await appointments.find({"patient_id": pid}, {"_id": 0}).sort("scheduled_at", -1).limit(200).to_list(200)
+    sessions = await consultations.find({"patient_id": pid}, {"_id": 0}).sort("scheduled_at", -1).limit(200).to_list(200)
     events: List[dict] = []
     for r in recs:
         events.append({
@@ -78,5 +81,12 @@ async def timeline(user: dict = Depends(get_current_user)):
             "summary": f"{len(meds)} medication(s) extracted",
             "created_at": p["created_at"],
         })
+    for lab in labs:
+        observations = lab.get("extracted", {}).get("observations", [])
+        events.append({"kind": "lab_report", "id": lab["document_id"], "title": lab.get("extracted", {}).get("lab_name") or "Lab report", "summary": f"{len(observations)} observation(s) extracted · {lab.get('review_state', 'pending')}", "created_at": lab["created_at"]})
+    for appointment in appts:
+        events.append({"kind": "appointment", "id": appointment["appointment_id"], "title": "Teleconsultation" if appointment.get("mode") == "telemedicine" else "Clinic appointment", "summary": appointment.get("status", "scheduled"), "created_at": appointment["scheduled_at"]})
+    for session in sessions:
+        events.append({"kind": "consultation", "id": session["consultation_id"], "title": "Clinical consultation", "summary": session.get("status", "ready"), "created_at": session["scheduled_at"]})
     events.sort(key=lambda e: e["created_at"], reverse=True)
     return events
