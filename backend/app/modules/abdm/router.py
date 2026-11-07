@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 from ...core.audit import write_audit
 from ...core.config import settings
-from ...core.db import abdm_callback_events, abdm_patient_links, abdm_transactions
+from ...core.db import abdm_callback_events, abdm_consents, abdm_patient_links, abdm_transactions
 from ...core.deps import require_role
 
 router = APIRouter(prefix="/abdm", tags=["abdm"])
@@ -62,6 +62,13 @@ async def _session() -> str:
 async def abdm_status(user: dict = Depends(require_role("admin"))):
     required = ("ABDM_GATEWAY_URL", "ABDM_ABHA_URL", "ABDM_CM_ID", "ABDM_CLIENT_ID", "ABDM_CLIENT_SECRET", "ABDM_BRIDGE_BASE_URL", "ABDM_CALLBACK_SHARED_SECRET", "ABDM_FACILITY_ID")
     return {"sandbox_configured": all(os.environ.get(name) for name in required), "hie_cm": "M2 link-token ready", "m5": "internal production-readiness gate"}
+
+
+@router.get("/my-status")
+async def my_abdm_status(user: dict = Depends(require_role("patient"))):
+    link = await abdm_patient_links.find_one({"patient_id": user["user_id"]}, {"_id": 0, "status": 1, "updated_at": 1})
+    consents = await abdm_consents.find({"patient_id": user["user_id"]}, {"_id": 0, "consent_id": 1, "status": 1, "created_at": 1}).sort("created_at", -1).to_list(50)
+    return {"link_status": link.get("status", "not_linked") if link else "not_linked", "consents": consents, "record_discovery": "pending_sandbox_flow", "locker": "pending_sandbox_flow"}
 
 
 @router.post("/hip/link-token", status_code=202)
