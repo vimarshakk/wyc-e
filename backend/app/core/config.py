@@ -10,7 +10,7 @@ load_dotenv(ROOT_DIR / ".env")
 class Settings:
     MONGO_URL: str = os.environ["MONGO_URL"]
     DB_NAME: str = os.environ["DB_NAME"]
-    CORS_ORIGINS: str = os.environ.get("CORS_ORIGINS", "*")
+    CORS_ORIGINS: str = os.environ["CORS_ORIGINS"]
     EMERGENT_LLM_KEY: str = os.environ.get("EMERGENT_LLM_KEY", "")
     JWT_SECRET: str = os.environ["JWT_SECRET"]
     TOKEN_ENCRYPTION_KEY: str = os.environ["TOKEN_ENCRYPTION_KEY"]

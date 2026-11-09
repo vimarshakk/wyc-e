@@ -2,11 +2,12 @@
 import uuid
 import requests
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, HTTPException, Response, Depends, Header
+from fastapi import APIRouter, HTTPException, Response, Depends, Header, Request
 from pydantic import BaseModel, EmailStr, Field
 from typing import Literal, Optional
+from pymongo import ReturnDocument
 from ...core.config import settings
-from ...core.db import users, sessions, wysh_ids
+from ...core.db import login_attempts, users, sessions, wysh_ids
 from ...core.security import hash_password, verify_password, create_jwt
 from ...core.deps import get_current_user, require_role
 from ...core.audit import write_audit
@@ -77,6 +78,7 @@ async def signup(body: SignupBody):
         raise HTTPException(status_code=403, detail="Administrator accounts cannot self-register")
     if body.role != "patient" and (not body.organization_name or not body.registration_number):
         raise HTTPException(status_code=400, detail="Organization and registration number are required for professional accounts")
+    body.email = body.email.lower()
     existing = await users.find_one({"email": body.email}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
@@ -112,10 +114,20 @@ async def signup(body: SignupBody):
 
 
 @router.post("/login")
-async def login(body: LoginBody):
-    user = await users.find_one({"email": body.email}, {"_id": 0})
+async def login(body: LoginBody, request: Request):
+    identifier = body.email.lower()
+    attempt = await login_attempts.find_one({"identifier": identifier}, {"_id": 0})
+    now = datetime.now(timezone.utc)
+    if attempt and attempt.get("locked_until") and datetime.fromisoformat(attempt["locked_until"]) > now:
+        raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
+    user = await users.find_one({"email": body.email.lower()}, {"_id": 0})
     if not user or not user.get("password_hash") or not verify_password(body.password, user["password_hash"]):
+        result = await login_attempts.find_one_and_update({"identifier": identifier}, {"$inc": {"failed_count": 1}, "$set": {"updated_at": now.isoformat()}}, upsert=True, return_document=ReturnDocument.AFTER)
+        failed_count = result.get("failed_count", 1)
+        if failed_count >= 5:
+            await login_attempts.update_one({"identifier": identifier}, {"$set": {"locked_until": (now + timedelta(minutes=15)).isoformat()}})
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    await login_attempts.update_one({"identifier": identifier}, {"$set": {"failed_count": 0, "locked_until": None, "cleared_at": now.isoformat()}}, upsert=True)
     token = create_jwt(user["user_id"], user["role"])
     await write_audit(user["user_id"], "user.login", "user", user["user_id"])
     user.pop("password_hash", None)
