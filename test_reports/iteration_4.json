@@ -1,0 +1,42 @@
+{
+  "summary": "All requested partner-role features passed real public API and browser testing. Final pytest: 14/16 pass; two pre-existing password-auth safeguards fail (no application httpOnly cookie, no five-failure lockout). All seven roles log in through the same screen and reach their correct dashboards. All four partner portals show consent-gated empty queues; patient/doctor/admin and anonymous lab-route guards work. No product code changed.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/auth/login", "issue": "No lockout after five failed password attempts on a disposable partner account: five 401s followed immediately by successful 200 login. Reproduced in both pytest runs. Pre-existing auth safeguard, not a partner provisioning failure.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/auth/login", "issue": "Password login returns JWT but sets no application authentication httpOnly cookie. Infrastructure Set-Cookie headers initially caused a false positive; corrected test checks actual auth cookies. Frontend stores JWT in localStorage. Pre-existing architecture differs from requested auth-playbook safeguard."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_partner_access.py",
+    "/app/test_reports/pytest/partner_access_results.xml",
+    "/app/test_reports/pytest/partner_access_retest.xml",
+    "/app/tests/partner_ui_playbook.py",
+    "/app/tests/partner_other_roles_ui_playbook.py",
+    "/app/tests/partner_ui_fixtures.py"
+  ],
+  "action_items": [
+    "Requested partner-role change is functionally verified; no blocker found in signup rejection, protected provisioning, role redirects or empty-queue privacy.",
+    "Address baseline password-login throttling/lockout and decide on secure cookie-based authentication rather than localStorage JWT; retest safeguards after implementation.",
+    "Review provisioning rollback/concurrent duplicate-email handling before production."
+  ],
+  "critical_code_review_comments": [
+    "Code-only: provision_partner checks email before insert, then creates the identity before hashing/inserting the user; no transaction/rollback or DuplicateKeyError handling exists. Concurrent duplicates or hashing/insertion failures can produce 500s/orphan identities. Not reproduced in this scoped run.",
+    "Code-only: several shared app routes (documents, OCR, records, appointments, consultations, billing) use Protected without role lists, so partners can directly visit patient-style workspaces despite partner-only navigation. Tested self-scoped read APIs return empty arrays and explicit other-patient requests return 403; no patient leak found. Add explicit role policy before expanding partner workflows."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_partner_access.py",
+    "/app/tests/partner_ui_playbook.py",
+    "/app/tests/partner_other_roles_ui_playbook.py",
+    "/app/tests/partner_ui_fixtures.py",
+    "/app/test_reports/iteration_4.json"
+  ],
+  "success_rate": {"backend": "87.5% (14/16 final tests); all requested feature checks pass", "frontend": "100% of executed requested role-login/portal/route-guard checks"},
+  "test_credentials": "Read /app/memory/test_credentials.md and /app/auth_testing.md first; documented patient, doctor, admin and lab credentials all authenticated. No documented account modified. Alternate auth-testing.md absent.",
+  "seed_data_creation": "No seed/reset/migration run. Disposable TEST_ partners provisioned only through documented admin API. All created users and identities removed by captured user IDs and cleanup verified; normal audit records retained. No public partner account created, no existing patient data changed.",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "Source frontend/.env and run pytest backend/tests/test_partner_access.py. Final output is partner_access_retest.xml. Initial validation failure was only a test-helper role argument collision and was corrected; infrastructure cookies no longer falsely satisfy auth-cookie check. Lockout reproduces twice. Browser run invokes run(page) using an explicit exec scope. Remaining-role browser initially failed before any account creation because browser runner lacks pymongo; moved setup/cleanup to bash fixture helper, then all three portals passed. To rerun alternate roles: python tests/partner_ui_fixtures.py setup; execute browser playbook; always python tests/partner_ui_fixtures.py cleanup. Fixture credential file was removed after verified cleanup. Reviewed backend logs show five 401s followed by 200 and no current traceback. Bcrypt hashes start $2b$; public-origin credentialed CORS preflight passed. No seed_admin implementation found, so idempotency was not executed. External OAuth/ABDM/LLM/payment services were not invoked. No APIs MOCKED. Consent/task fulfillment is intentionally unimplemented and portals correctly remain empty, not a simulated task integration. Requested integration_playbook_expert_v2/test_finish tools were unavailable; used local auth instructions and available finish tool."
+}

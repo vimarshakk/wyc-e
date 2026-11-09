@@ -8,12 +8,12 @@ from typing import Literal, Optional
 from ...core.config import settings
 from ...core.db import users, sessions, wysh_ids
 from ...core.security import hash_password, verify_password, create_jwt
-from ...core.deps import get_current_user
+from ...core.deps import get_current_user, require_role
 from ...core.audit import write_audit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-ROLES = ("patient", "doctor", "admin")
+ROLES = ("patient", "doctor", "admin", "lab", "pharmacy", "insurer", "partner")
 
 
 def _gen_wysh_id() -> str:
@@ -42,7 +42,7 @@ class SignupBody(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
     name: str = Field(min_length=2)
-    role: Literal["patient", "doctor", "admin"] = "patient"
+    role: Literal["patient", "doctor", "admin", "lab", "pharmacy", "insurer", "partner"] = "patient"
     phone: Optional[str] = None
     specialty: Optional[str] = None  # for doctors
 
@@ -54,6 +54,14 @@ class LoginBody(BaseModel):
 
 class GoogleExchangeBody(BaseModel):
     session_id: str
+
+
+class PartnerProvisionBody(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=12)
+    name: str = Field(min_length=2, max_length=120)
+    role: Literal["lab", "pharmacy", "insurer", "partner"]
+    organization_name: str = Field(min_length=2, max_length=160)
 
 
 @router.post("/signup")
@@ -98,6 +106,19 @@ async def login(body: LoginBody):
     await write_audit(user["user_id"], "user.login", "user", user["user_id"])
     user.pop("password_hash", None)
     return {"token": token, "user": user}
+
+
+@router.post("/partners", status_code=201)
+async def provision_partner(body: PartnerProvisionBody, user: dict = Depends(require_role("admin"))):
+    if await users.find_one({"email": body.email}, {"_id": 0, "user_id": 1}):
+        raise HTTPException(status_code=409, detail="Email already registered")
+    user_id = f"usr_{uuid.uuid4().hex[:16]}"
+    wysh_id = await _create_wysh_id(user_id, body.role)
+    partner = {"user_id": user_id, "email": body.email, "name": body.name, "role": body.role, "organization_name": body.organization_name, "partner_status": "active", "wysh_id": wysh_id, "password_hash": hash_password(body.password), "auth_provider": "password", "created_at": datetime.now(timezone.utc).isoformat()}
+    await users.insert_one(partner)
+    partner.pop("_id", None); partner.pop("password_hash", None)
+    await write_audit(user["user_id"], "partner.provision", "user", user_id, {"role": body.role})
+    return partner
 
 
 @router.post("/google/exchange")

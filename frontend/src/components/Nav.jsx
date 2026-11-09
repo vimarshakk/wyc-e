@@ -25,6 +25,10 @@ const navByRole = {
     { to: '/app/wyshid', label: 'WyshID' },
     { to: '/app/abdm', label: 'ABDM' },
   ],
+  lab: [{ to: '/app/lab', label: 'Operations' }],
+  pharmacy: [{ to: '/app/pharmacy', label: 'Fulfilment' }],
+  insurer: [{ to: '/app/insurer', label: 'Claims' }],
+  partner: [{ to: '/app/partner', label: 'Workspace' }],
   admin: [
     { to: '/app/admin', label: 'Control Room' },
     { to: '/app/wyshid', label: 'WyshID' },
