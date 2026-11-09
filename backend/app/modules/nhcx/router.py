@@ -1,9 +1,9 @@
 import os
 import uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
-from ...core.db import nhcx_episodes
+from ...core.db import nhcx_episodes, nhcx_events
 from ...core.deps import require_role
 
 router = APIRouter(prefix="/nhcx", tags=["nhcx"])
@@ -36,3 +36,19 @@ async def eligibility(episode_id: str, user: dict = Depends(require_role("doctor
     if not result.modified_count:
         raise HTTPException(status_code=409, detail="Episode is not eligible for this transition")
     raise HTTPException(status_code=501, detail="Verified NHCX JWE adapter is pending callback onboarding")
+
+@router.post("/v1/{entity}/on_{action}", status_code=202)
+async def receive_callback(entity: str, action: str, request: Request, x_hcx_api_call_id: str | None = Header(default=None), x_hcx_correlation_id: str | None = Header(default=None), x_hcx_sender_code: str | None = Header(default=None), x_nhcx_callback_secret: str | None = Header(default=None)):
+    if entity not in {"coverageeligibility", "preauth", "claim", "task", "payment", "insuranceplan"}:
+        raise HTTPException(status_code=404, detail="Unsupported NHCX entity")
+    expected_secret = os.environ.get("NHCX_CALLBACK_SHARED_SECRET")
+    if not expected_secret or not x_nhcx_callback_secret or x_nhcx_callback_secret != expected_secret:
+        raise HTTPException(status_code=401, detail="Unauthorized NHCX callback")
+    body = await request.json()
+    if not isinstance(body, dict) or not x_hcx_api_call_id or not x_hcx_correlation_id:
+        raise HTTPException(status_code=400, detail="Invalid NHCX callback")
+    await nhcx_events.update_one({"correlation_id": x_hcx_correlation_id, "api_call_id": x_hcx_api_call_id}, {"$setOnInsert": {"correlation_id": x_hcx_correlation_id, "api_call_id": x_hcx_api_call_id, "entity_type": entity, "action": action, "received_at": datetime.now(timezone.utc).isoformat(), "status": "queued"}}, upsert=True)
+    participant_code = os.environ.get("NHCX_PARTICIPANT_CODE")
+    if not participant_code:
+        raise HTTPException(status_code=503, detail="NHCX participant configuration is incomplete")
+    return {"timestamp": datetime.now(timezone.utc).isoformat(), "api_call_id": x_hcx_api_call_id, "correlation_id": x_hcx_correlation_id, "result": {"sender_code": x_hcx_sender_code or "", "recipient_code": participant_code, "entity_type": entity, "protocol_status": "request.queued"}, "error": {"code": "", "message": ""}}
