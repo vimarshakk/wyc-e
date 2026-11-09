@@ -19,3 +19,6 @@ async def activate(body:BreakGlass,user:dict=Depends(require_role('doctor'))):
     await emergency_access_events.insert_one(event);event.pop('_id',None)
     await write_audit(user['user_id'],'chart.break_glass','patient',body.patient_id,{'event_id':event['event_id'],'minutes':body.minutes})
     return event
+@router.get('/mine')
+async def patient_history(user:dict=Depends(require_role('patient'))):
+    return await emergency_access_events.find({'patient_id':user['user_id']},{'_id':0,'reason':0}).sort('created_at',-1).to_list(200)
