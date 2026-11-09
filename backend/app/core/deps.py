@@ -4,6 +4,8 @@ from fastapi import Header, Cookie, HTTPException, Depends
 from .security import decode_jwt
 from .db import users, sessions
 
+PROFESSIONAL_ROLES = {"doctor", "lab", "pharmacy", "insurer", "partner"}
+
 
 async def _user_by_id(user_id: str) -> dict | None:
     return await users.find_one({"user_id": user_id}, {"_id": 0})
@@ -55,5 +57,7 @@ def require_role(*roles: str):
     async def _check(user: dict = Depends(get_current_user)) -> dict:
         if user.get("role") not in roles:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
+        if user.get("role") in PROFESSIONAL_ROLES and user.get("verification_status") != "APPROVED":
+            raise HTTPException(status_code=403, detail="Account verification is pending")
         return user
     return _check

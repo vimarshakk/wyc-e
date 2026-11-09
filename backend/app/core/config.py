@@ -12,7 +12,8 @@ class Settings:
     DB_NAME: str = os.environ["DB_NAME"]
     CORS_ORIGINS: str = os.environ.get("CORS_ORIGINS", "*")
     EMERGENT_LLM_KEY: str = os.environ.get("EMERGENT_LLM_KEY", "")
-    JWT_SECRET: str = os.environ.get("JWT_SECRET", "wyshcare-dev-secret")
+    JWT_SECRET: str = os.environ["JWT_SECRET"]
+    TOKEN_ENCRYPTION_KEY: str = os.environ["TOKEN_ENCRYPTION_KEY"]
     JWT_ALGO: str = "HS256"
     JWT_EXPIRE_HOURS: int = 24 * 7
     APP_NAME: str = os.environ.get("APP_NAME", "wyshcare")

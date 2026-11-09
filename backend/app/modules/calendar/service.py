@@ -16,7 +16,7 @@ CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar"
 
 
 def _cipher() -> Fernet:
-    key = base64.urlsafe_b64encode(hashlib.sha256(settings.JWT_SECRET.encode()).digest())
+    key = base64.urlsafe_b64encode(hashlib.sha256(settings.TOKEN_ENCRYPTION_KEY.encode()).digest())
     return Fernet(key)
 
 

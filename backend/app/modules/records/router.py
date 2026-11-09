@@ -8,6 +8,14 @@ from ...core.db import appointments, consultations, lab_reports, prescriptions, 
 from ...core.deps import get_current_user
 from ...core.audit import write_audit
 
+async def _can_access_chart(actor: dict, patient_id: str) -> bool:
+    if actor["user_id"] == patient_id:
+        return actor["role"] == "patient"
+    if actor["role"] != "doctor":
+        return False
+    relationship = await appointments.find_one({"doctor_id": actor["user_id"], "patient_id": patient_id, "status": {"$in": ["scheduled", "completed"]}}, {"_id": 0, "appointment_id": 1})
+    return bool(relationship)
+
 router = APIRouter(prefix="/records", tags=["records"])
 
 RecordType = Literal["prescription", "lab_report", "imaging", "vitals", "note"]
@@ -25,7 +33,7 @@ class RecordCreate(BaseModel):
 @router.post("")
 async def create_record(body: RecordCreate, user: dict = Depends(get_current_user)):
     target_patient = body.patient_id or user["user_id"]
-    if target_patient != user["user_id"] and user["role"] not in ("doctor", "admin"):
+    if not await _can_access_chart(user, target_patient):
         raise HTTPException(status_code=403, detail="Not allowed")
     rec = {
         "record_id": f"rec_{uuid.uuid4().hex[:16]}",
@@ -48,7 +56,7 @@ async def create_record(body: RecordCreate, user: dict = Depends(get_current_use
 @router.get("")
 async def list_records(patient_id: Optional[str] = None, user: dict = Depends(get_current_user)):
     target = patient_id or user["user_id"]
-    if target != user["user_id"] and user["role"] not in ("doctor", "admin"):
+    if not await _can_access_chart(user, target):
         raise HTTPException(status_code=403, detail="Not allowed")
     cur = records.find({"patient_id": target}, {"_id": 0}).sort("created_at", -1).limit(500)
     return await cur.to_list(500)
