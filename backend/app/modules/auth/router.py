@@ -45,6 +45,9 @@ class SignupBody(BaseModel):
     role: Literal["patient", "doctor", "admin", "lab", "pharmacy", "insurer", "partner"] = "patient"
     phone: Optional[str] = None
     specialty: Optional[str] = None  # for doctors
+    organization_name: Optional[str] = Field(default=None, max_length=160)
+    registration_number: Optional[str] = Field(default=None, max_length=120)
+    registration_jurisdiction: Optional[str] = Field(default=None, max_length=120)
 
 
 class LoginBody(BaseModel):
@@ -66,8 +69,8 @@ class PartnerProvisionBody(BaseModel):
 
 @router.post("/signup")
 async def signup(body: SignupBody):
-    if body.role != "patient":
-        raise HTTPException(status_code=403, detail="Only patient self-registration is available")
+    if body.role != "patient" and (not body.organization_name or not body.registration_number):
+        raise HTTPException(status_code=400, detail="Organization and registration number are required for professional accounts")
     existing = await users.find_one({"email": body.email}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
@@ -81,6 +84,11 @@ async def signup(body: SignupBody):
         "role": body.role,
         "phone": body.phone,
         "specialty": body.specialty,
+        "organization_name": body.organization_name,
+        "registration_number": body.registration_number,
+        "registration_jurisdiction": body.registration_jurisdiction,
+        "verification_status": "APPROVED" if body.role == "patient" else "VERIFICATION_PENDING",
+        "verification_source": "self_declared" if body.role != "patient" else "patient_otp_pending",
         "wysh_id": wysh_id,
         "password_hash": hash_password(body.password),
         "auth_provider": "password",
