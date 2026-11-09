@@ -9,16 +9,18 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [audit, setAudit] = useState([]);
   const [calendar, setCalendar] = useState({ connected: false });
+  const [pending, setPending] = useState([]);
 
   useEffect(() => {
     (async () => {
-      const [s, u, a, calendarStatus] = await Promise.all([
+      const [s, u, a, calendarStatus, pendingPartners] = await Promise.all([
         api.get('/admin/stats').catch(() => ({ data: {} })),
         api.get('/admin/users').catch(() => ({ data: [] })),
         api.get('/admin/audit?limit=20').catch(() => ({ data: [] })),
         api.get('/calendar/status').catch(() => ({ data: { connected: false } })),
+        api.get('/auth/partners/pending').catch(() => ({ data: [] })),
       ]);
-      setStats(s.data); setUsers(u.data); setAudit(a.data); setCalendar(calendarStatus.data || { connected: false });
+      setStats(s.data); setUsers(u.data); setAudit(a.data); setCalendar(calendarStatus.data || { connected: false }); setPending(pendingPartners.data || []);
     })();
   }, []);
 
@@ -26,6 +28,7 @@ export default function AdminDashboard() {
     try { const { data } = await api.get('/calendar/connect'); window.location.assign(data.authorization_url); }
     catch (error) { toast.error(error?.response?.data?.detail || 'Calendar connection could not start'); }
   };
+  const decide = async (id, decision) => { try { await api.post(`/auth/partners/${id}/verification`, { decision }); setPending(pending.filter((item) => item.user_id !== id)); toast.success(`Account ${decision.toLowerCase()}`); } catch { toast.error('Decision could not be saved'); } };
 
   return (
     <div className="min-h-screen bg-background grain">
@@ -50,6 +53,7 @@ export default function AdminDashboard() {
             <div><div className="micro text-coral">Google Calendar organizer</div><div data-testid="calendar-organizer-status" className="text-sm mt-1">{calendar.connected ? `Connected: ${calendar.organizer_email}` : 'Connect one clinic organizer to create Google Meet links.'}</div></div>
             <button onClick={connectCalendar} data-testid="connect-google-calendar-btn" className="btn-sharp border border-foreground px-4 py-2.5 text-sm">{calendar.connected ? 'Reconnect organizer' : 'Connect Google Calendar'}</button>
           </div>
+          <div className="col-span-12 bento-cell p-7" data-testid="partner-verification-queue"><h2 className="font-outfit text-2xl mb-4">Verification queue</h2><div className="space-y-3">{pending.map((item) => <div key={item.user_id} className="border border-border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><div className="text-sm font-medium">{item.name} · {item.organization_name}</div><div className="mono text-xs text-muted-foreground mt-1">{item.role} · {item.registration_number} · {item.registration_jurisdiction || 'jurisdiction not supplied'}</div></div><div className="flex gap-2"><button onClick={() => decide(item.user_id, 'REJECTED')} data-testid={`reject-verification-${item.user_id}`} className="border border-foreground px-3 py-2 text-xs">Reject</button><button onClick={() => decide(item.user_id, 'APPROVED')} data-testid={`approve-verification-${item.user_id}`} className="btn-sharp bg-slateink text-bone px-3 py-2 text-xs">Approve</button></div></div>)}{pending.length === 0 && <p data-testid="verification-empty-state" className="text-sm text-muted-foreground">No professional or partner registrations are waiting.</p>}</div></div>
           <div className="col-span-12 lg:col-span-7 bento-cell p-7">
             <h2 className="font-outfit text-2xl tracking-tight mb-4">Users</h2>
             <table className="w-full text-sm" data-testid="admin-users-table">

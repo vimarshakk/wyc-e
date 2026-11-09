@@ -43,16 +43,16 @@ function HashRouter() {
       <Route path="/app/patient" element={<Protected roles={['patient']}><PatientDashboard /></Protected>} />
       <Route path="/app/doctor" element={<Protected roles={['doctor']}><DoctorDashboard /></Protected>} />
       <Route path="/app/admin" element={<Protected roles={['admin']}><AdminDashboard /></Protected>} />
-      <Route path="/app/ocr" element={<Protected><OcrUpload /></Protected>} />
-      <Route path="/app/documents" element={<Protected><Documents /></Protected>} />
-      <Route path="/app/records" element={<Protected><Records /></Protected>} />
-      <Route path="/app/appointments" element={<Protected><Appointments /></Protected>} />
+      <Route path="/app/ocr" element={<Protected roles={['patient']}><OcrUpload /></Protected>} />
+      <Route path="/app/documents" element={<Protected roles={['patient']}><Documents /></Protected>} />
+      <Route path="/app/records" element={<Protected roles={['patient']}><Records /></Protected>} />
+      <Route path="/app/appointments" element={<Protected roles={['patient','doctor']}><Appointments /></Protected>} />
       <Route path="/app/wyshid" element={<Protected><WyshIdCard /></Protected>} />
       <Route path="/app/availability" element={<Protected roles={['doctor']}><DoctorAvailability /></Protected>} />
       <Route path="/app/care-plan" element={<Protected roles={['patient']}><CarePlan /></Protected>} />
-      <Route path="/app/consultations" element={<Protected><Consultations /></Protected>} />
-      <Route path="/app/billing" element={<Protected><Billing /></Protected>} />
-      <Route path="/app/abdm" element={<Protected><Abdm /></Protected>} />
+      <Route path="/app/consultations" element={<Protected roles={['patient','doctor']}><Consultations /></Protected>} />
+      <Route path="/app/billing" element={<Protected roles={['patient','doctor','admin']}><Billing /></Protected>} />
+      <Route path="/app/abdm" element={<Protected roles={['patient','admin']}><Abdm /></Protected>} />
       <Route path="/app/claims" element={<Protected roles={['doctor', 'admin']}><Claims /></Protected>} />
       <Route path="/app/lab" element={<Protected roles={['lab']}><PartnerPortal /></Protected>} />
       <Route path="/app/pharmacy" element={<Protected roles={['pharmacy']}><PartnerPortal /></Protected>} />

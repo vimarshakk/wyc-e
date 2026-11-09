@@ -29,6 +29,7 @@ abdm_consents = db.wysh_abdm_consents
 uhi_transactions = db.wysh_uhi_transactions
 nhcx_episodes = db.wysh_nhcx_episodes
 nhcx_events = db.wysh_nhcx_events
+partner_tasks = db.wysh_partner_tasks
 audit_logs = db.wysh_audit_logs
 files = db.wysh_files
 
@@ -74,6 +75,7 @@ async def ensure_indexes():
     await nhcx_episodes.create_index("episode_id", unique=True)
     await nhcx_episodes.create_index([("patient_id", 1), ("created_at", -1)])
     await nhcx_events.create_index([("correlation_id", 1), ("api_call_id", 1)], unique=True)
+    await partner_tasks.create_index([("partner_id", 1), ("status", 1)])
 
 
 def get_client():
