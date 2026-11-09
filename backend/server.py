@@ -20,6 +20,7 @@ from app.modules.abdm.router import router as abdm_router
 from app.modules.uhi.router import router as uhi_router
 from app.modules.nhcx.router import router as nhcx_router
 from app.modules.partner_tasks.router import router as partner_tasks_router
+from app.modules.consents.router import router as consents_router
 from app.modules.storage.service import init_storage
 
 logging.basicConfig(level=logging.INFO,
@@ -55,6 +56,7 @@ api.include_router(abdm_router)
 api.include_router(uhi_router)
 api.include_router(nhcx_router)
 api.include_router(partner_tasks_router)
+api.include_router(consents_router)
 api.include_router(admin_router)
 
 app.include_router(api)
