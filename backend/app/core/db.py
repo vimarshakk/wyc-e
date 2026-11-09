@@ -31,6 +31,8 @@ nhcx_episodes = db.wysh_nhcx_episodes
 nhcx_events = db.wysh_nhcx_events
 partner_tasks = db.wysh_partner_tasks
 chart_consents = db.wysh_chart_consents
+organizations = db.wysh_organizations
+organization_memberships = db.wysh_organization_memberships
 audit_logs = db.wysh_audit_logs
 files = db.wysh_files
 
@@ -78,6 +80,8 @@ async def ensure_indexes():
     await nhcx_events.create_index([("correlation_id", 1), ("api_call_id", 1)], unique=True)
     await partner_tasks.create_index([("partner_id", 1), ("status", 1)])
     await chart_consents.create_index([("patient_id", 1), ("grantee_id", 1), ("expires_at", 1)])
+    await organizations.create_index("organization_id", unique=True)
+    await organization_memberships.create_index([("organization_id", 1), ("user_id", 1)], unique=True)
 
 
 def get_client():
