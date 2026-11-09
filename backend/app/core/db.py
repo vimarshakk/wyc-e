@@ -26,6 +26,9 @@ abdm_transactions = db.wysh_abdm_transactions
 abdm_callback_events = db.wysh_abdm_callback_events
 abdm_patient_links = db.wysh_abdm_patient_links
 abdm_consents = db.wysh_abdm_consents
+uhi_transactions = db.wysh_uhi_transactions
+nhcx_episodes = db.wysh_nhcx_episodes
+nhcx_events = db.wysh_nhcx_events
 audit_logs = db.wysh_audit_logs
 files = db.wysh_files
 
@@ -66,6 +69,11 @@ async def ensure_indexes():
     await abdm_callback_events.create_index([("event_type", 1), ("correlation_id", 1)], unique=True, sparse=True)
     await abdm_patient_links.create_index("patient_id", unique=True)
     await abdm_consents.create_index("consent_id", unique=True, sparse=True)
+    await uhi_transactions.create_index("transaction_id", unique=True)
+    await uhi_transactions.create_index([("patient_id", 1), ("created_at", -1)])
+    await nhcx_episodes.create_index("episode_id", unique=True)
+    await nhcx_episodes.create_index([("patient_id", 1), ("created_at", -1)])
+    await nhcx_events.create_index([("correlation_id", 1), ("api_call_id", 1)], unique=True)
 
 
 def get_client():
