@@ -22,6 +22,7 @@ import Billing from './pages/Billing';
 import Abdm from './pages/Abdm';
 import Claims from './pages/Claims';
 import PartnerPortal from './pages/PartnerPortal';
+import ConsentCenter from './pages/ConsentCenter';
 
 function Protected({ children, roles }) {
   const { user, loading } = useAuth();
@@ -50,6 +51,7 @@ function HashRouter() {
       <Route path="/app/wyshid" element={<Protected><WyshIdCard /></Protected>} />
       <Route path="/app/availability" element={<Protected roles={['doctor']}><DoctorAvailability /></Protected>} />
       <Route path="/app/care-plan" element={<Protected roles={['patient']}><CarePlan /></Protected>} />
+      <Route path="/app/consents" element={<Protected roles={['patient']}><ConsentCenter /></Protected>} />
       <Route path="/app/consultations" element={<Protected roles={['patient','doctor']}><Consultations /></Protected>} />
       <Route path="/app/billing" element={<Protected roles={['patient','doctor','admin']}><Billing /></Protected>} />
       <Route path="/app/abdm" element={<Protected roles={['patient','admin']}><Abdm /></Protected>} />

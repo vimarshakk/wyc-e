@@ -33,6 +33,7 @@ partner_tasks = db.wysh_partner_tasks
 chart_consents = db.wysh_chart_consents
 organizations = db.wysh_organizations
 organization_memberships = db.wysh_organization_memberships
+emergency_access_events = db.wysh_emergency_access_events
 audit_logs = db.wysh_audit_logs
 files = db.wysh_files
 
@@ -82,6 +83,7 @@ async def ensure_indexes():
     await chart_consents.create_index([("patient_id", 1), ("grantee_id", 1), ("expires_at", 1)])
     await organizations.create_index("organization_id", unique=True)
     await organization_memberships.create_index([("organization_id", 1), ("user_id", 1)], unique=True)
+    await emergency_access_events.create_index([("patient_id", 1), ("expires_at", 1)])
 
 
 def get_client():

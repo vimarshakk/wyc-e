@@ -22,6 +22,7 @@ from app.modules.nhcx.router import router as nhcx_router
 from app.modules.partner_tasks.router import router as partner_tasks_router
 from app.modules.consents.router import router as consents_router
 from app.modules.organizations.router import router as organizations_router
+from app.modules.emergency_access.router import router as emergency_access_router
 from app.modules.storage.service import init_storage
 
 logging.basicConfig(level=logging.INFO,
@@ -59,6 +60,7 @@ api.include_router(nhcx_router)
 api.include_router(partner_tasks_router)
 api.include_router(consents_router)
 api.include_router(organizations_router)
+api.include_router(emergency_access_router)
 api.include_router(admin_router)
 
 app.include_router(api)

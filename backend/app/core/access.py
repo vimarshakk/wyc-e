@@ -1,7 +1,7 @@
 """Central minimum-necessary access decisions for clinical resources."""
 from datetime import datetime, timezone
 from fastapi import HTTPException
-from .db import appointments, chart_consents, organization_memberships
+from .db import appointments, chart_consents, emergency_access_events, organization_memberships
 
 PROFESSIONAL_ROLES = {"doctor", "lab", "pharmacy", "insurer", "partner"}
 
@@ -29,4 +29,6 @@ async def can_access_patient_chart(actor: dict, patient_id: str, scope: str = "r
             expiry = datetime.fromisoformat(grant["expires_at"].replace("Z", "+00:00"))
             if expiry.tzinfo and expiry.astimezone(timezone.utc) > datetime.now(timezone.utc): return True
         except (KeyError, TypeError, ValueError): continue
+    emergency = await emergency_access_events.find_one({"patient_id": patient_id, "actor_id": actor["user_id"], "status": "ACTIVE", "expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}}, {"_id": 0, "event_id": 1})
+    if emergency: return True
     return bool(await appointments.find_one({"doctor_id": actor["user_id"], "patient_id": patient_id, "status": {"$in": ["scheduled", "completed"]}}, {"_id": 0, "appointment_id": 1}))
