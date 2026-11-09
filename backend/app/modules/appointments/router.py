@@ -8,6 +8,7 @@ from pymongo.errors import DuplicateKeyError
 from ...core.db import users, appointments
 from ...core.deps import get_current_user, require_role
 from ...core.audit import write_audit
+from ...core.access import require_verified_member
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
 
@@ -78,6 +79,7 @@ async def book(body: BookBody, user: dict = Depends(require_role("patient"))):
 
 @router.get("/mine")
 async def my_appointments(user: dict = Depends(get_current_user)):
+    if user["role"] == "doctor": await require_verified_member(user)
     query = {"doctor_id": user["user_id"]} if user["role"] == "doctor" else {"patient_id": user["user_id"]}
     cur = appointments.find(query, {"_id": 0}).sort("scheduled_at", -1).limit(200)
     appts = await cur.to_list(200)

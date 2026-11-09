@@ -1,0 +1,24 @@
+{
+  "summary": "Backend-only authorization retest: all 18 existing tests pass, including all five prior failures. Two supplemental OCR regressions also pass, covering read/review/download denial for pending and nonmember doctors, consent scope enforcement, revocation, and UTC expiry persistence. No product code changed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_clinical_authorization.py",
+    "/app/backend/tests/test_clinical_authorization_ocr_retest.py",
+    "/app/test_reports/pytest/clinical_authorization_retest_verified.xml",
+    "/app/test_reports/pytest/clinical_authorization_ocr_retest.xml"
+  ],
+  "action_items": ["No blocking action for the requested authorization fixes. Broader previously reported auth and adjacent-route concerns were outside this retest and are not cleared by these results."],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_clinical_authorization_ocr_retest.py",
+    "/app/test_reports/iteration_6.json"
+  ],
+  "success_rate": {"backend": "100% (18/18 existing + 2/2 supplemental tests)", "frontend": "Not tested; explicitly excluded"},
+  "test_credentials": "Read documented credentials and auth instructions before testing. Existing documented patient/doctor/admin accounts authenticated without modification. Isolated TEST_ accounts used for clinical checks; documented admin used only to approve and organize those accounts.",
+  "seed_data_creation": "No seed/reset/migration. Each suite used disposable TEST_ accounts, organization, membership, consents and records. Synthetic appointments and OCR documents/files were inserted only for isolated authorization testing. Cleanup removed only captured test-owned IDs; clinical fixture cleanup assertions passed. Normal audit events retained. No APIs MOCKED; no LLM, OAuth, calendar or object-storage integration invoked.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Source frontend/.env then run the two linked pytest files with JUnit output. All HTTP requests use public REACT_APP_BACKEND_URL. Existing regression ran in 18.54 seconds; supplemental suite ran in 11.13 seconds. Prior expired +10:00 consent bypass now denies, valid future -10:00 consent permits access, naive expiry returns validation error, pending appointment doctor OCR read denies, and nonmember enriched appointment queue denies. Supplemental tests additionally deny OCR read/approved-review/download for both lab reports and prescriptions when pending/nonmember doctors have BOTH appointment and matching consent; document remains pending and no EMR record is created. Verified member with records-only consent is denied OCR; matching labs/prescriptions scope permits document read and rejection review with persisted state. Revocation then denies read/review/download. Supplemental test verifies offset expiry is returned and stored in UTC without changing the instant. Successful binary download was not attempted because external object storage is outside scope; only authorization rejection was tested. Product files were reviewed, not modified. Prior baseline auth lockout/cookie and broader adjacent-route issues were not retested. Available finish tool substitutes for unavailable test_finish.",
+  "rca of the issue": "Reviewed fixes remove lexical expiry comparisons: aware timestamps are normalized to UTC on grant and compared as actual instants by central access. Naive timestamps are rejected before comparison. OCR delegates to central scope-aware chart policy, enforcing approval and active membership before appointment fallback. Doctor appointment queue now enforces the same professional eligibility before querying/enriching clinical data. All five preceding failures are resolved in this executed regression."
+}

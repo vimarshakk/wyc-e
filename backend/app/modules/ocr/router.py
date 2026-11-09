@@ -13,6 +13,7 @@ from ...core.config import settings
 from ...core.db import appointments, files as files_col, lab_reports, prescriptions, records
 from ...core.deps import get_current_user
 from ...core.security import decode_jwt
+from ...core.access import can_access_patient_chart
 from ..ai.llm import extract_medical_document
 from ..storage.service import get_object, put_object
 
@@ -54,10 +55,7 @@ def _to_image_for_extraction(data: bytes, content_type: str) -> bytes:
 async def _can_access(document: dict, user: dict) -> bool:
     if document["patient_id"] == user["user_id"]:
         return True
-    if user["role"] != "doctor":
-        return False
-    relationship = await appointments.find_one({"doctor_id": user["user_id"], "patient_id": document["patient_id"], "status": {"$in": ["scheduled", "completed"]}}, {"_id": 0, "appointment_id": 1})
-    return bool(relationship)
+    return await can_access_patient_chart(user, document["patient_id"], "prescriptions" if document["document_kind"] == "prescription" else "labs")
 
 
 async def _upload_document(kind: DocumentKind, file: UploadFile, user: dict) -> dict:
