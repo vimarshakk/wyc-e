@@ -12,6 +12,7 @@ const navByRole = {
     { to: '/app/consultations', label: 'Consultations' },
     { to: '/app/care-plan', label: 'Care Plan' },
     { to: '/app/billing', label: 'Billing' },
+    { to: '/app/claims', label: 'Claims' },
     { to: '/app/wyshid', label: 'WyshID' },
     { to: '/app/abdm', label: 'ABDM' },
   ],

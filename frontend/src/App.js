@@ -20,6 +20,7 @@ import CarePlan from './pages/CarePlan';
 import Consultations from './pages/Consultations';
 import Billing from './pages/Billing';
 import Abdm from './pages/Abdm';
+import Claims from './pages/Claims';
 
 function Protected({ children, roles }) {
   const { user, loading } = useAuth();
@@ -51,6 +52,7 @@ function HashRouter() {
       <Route path="/app/consultations" element={<Protected><Consultations /></Protected>} />
       <Route path="/app/billing" element={<Protected><Billing /></Protected>} />
       <Route path="/app/abdm" element={<Protected><Abdm /></Protected>} />
+      <Route path="/app/claims" element={<Protected roles={['doctor', 'admin']}><Claims /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
