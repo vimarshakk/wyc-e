@@ -69,6 +69,8 @@ class PartnerProvisionBody(BaseModel):
 
 @router.post("/signup")
 async def signup(body: SignupBody):
+    if body.role == "admin":
+        raise HTTPException(status_code=403, detail="Administrator accounts cannot self-register")
     if body.role != "patient" and (not body.organization_name or not body.registration_number):
         raise HTTPException(status_code=400, detail="Organization and registration number are required for professional accounts")
     existing = await users.find_one({"email": body.email}, {"_id": 0})

@@ -7,7 +7,7 @@ import { ArrowRight } from 'lucide-react';
 export default function Signup() {
   const { signup } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'patient', specialty: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'patient', specialty: '', organization_name: '', registration_number: '', registration_jurisdiction: '' });
   const [busy, setBusy] = useState(false);
 
   const upd = (k) => (e) => setForm({ ...form, [k]: e.target.value });
@@ -32,8 +32,8 @@ export default function Signup() {
           <div className="micro text-coral mb-3">Issue a WyshID</div>
           <h1 className="font-outfit text-4xl tracking-tighter mb-8">Claim your verified<br/>health identity</h1>
           <form onSubmit={submit} className="space-y-4">
-            <div className="grid grid-cols-3 gap-2 p-1 border border-border">
-              {['patient', 'doctor', 'admin'].map(r => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-1 border border-border">
+              {['patient', 'doctor', 'lab', 'pharmacy', 'insurer', 'partner'].map(r => (
                 <button type="button" key={r} onClick={() => setForm({ ...form, role: r })}
                   data-testid={`signup-role-${r}`}
                   className={`py-2 text-sm capitalize transition-colors ${form.role === r ? 'bg-slateink text-bone' : 'hover:bg-muted'}`}>
@@ -51,6 +51,7 @@ export default function Signup() {
               <input data-testid="signup-specialty" placeholder="Specialty (e.g. Cardiology)" value={form.specialty} onChange={upd('specialty')}
                 className="w-full px-4 py-3 border border-border bg-card focus:outline-none focus:border-foreground" />
             )}
+            {form.role !== 'patient' && <><input data-testid="signup-organization" required placeholder="Organization name" value={form.organization_name} onChange={upd('organization_name')} className="w-full px-4 py-3 border border-border bg-card" /><input data-testid="signup-registration-number" required placeholder="Registration or licence number" value={form.registration_number} onChange={upd('registration_number')} className="w-full px-4 py-3 border border-border bg-card" /><input data-testid="signup-registration-jurisdiction" placeholder="State / jurisdiction" value={form.registration_jurisdiction} onChange={upd('registration_jurisdiction')} className="w-full px-4 py-3 border border-border bg-card" /></>}
             <button disabled={busy} data-testid="signup-submit"
               className="btn-sharp w-full bg-slateink text-bone py-3 font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60">
               {busy ? 'Issuing…' : 'Issue WyshID'} <ArrowRight className="w-4 h-4" />
