@@ -1,0 +1,2 @@
+import React from "react"; import {Link} from "react-router-dom";
+export default function Documents(){return <div className="page"><span className="eyebrow">Secure documents</span><h1>Documents</h1><div className="card"><p className="muted">Uploaded documents appear here after secure storage and human review.</p><Link className="button primary" to="/documents/upload">Upload document</Link></div></div>}

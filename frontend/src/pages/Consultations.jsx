@@ -1,0 +1,1 @@
+import React from "react"; export default function Consultations(){return <div className="page"><span className="eyebrow">Clinical notes</span><h1>Consultations</h1><div className="card"><p className="muted">Consultation notes require an authenticated doctor or nurse role and remain auditable.</p></div></div>}

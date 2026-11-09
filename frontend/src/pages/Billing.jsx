@@ -1,0 +1,2 @@
+import React,{useEffect,useState} from "react"; import {api} from "../lib/api";
+export default function Billing(){const [data,setData]=useState(null);useEffect(()=>{api.get("/billing/summary").then(setData).catch(()=>{})},[]);return <div className="page"><span className="eyebrow">Payments</span><h1>Billing</h1><div className="card"><div className="stat">₹{data?.outstanding??0}</div><p className="muted">Outstanding balance</p></div></div>}

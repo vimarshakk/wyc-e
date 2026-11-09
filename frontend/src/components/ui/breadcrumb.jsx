@@ -1,0 +1,1 @@
+import React from "react"; export const Breadcrumb=({children})=><nav aria-label="Breadcrumb">{children}</nav>; export const BreadcrumbList=({children})=><ol>{children}</ol>; export const BreadcrumbItem=({children})=><li>{children}</li>;

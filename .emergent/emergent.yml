@@ -1,0 +1,7 @@
+project: care-platform-v1
+source: emergent
+frontend: frontend
+backend: backend
+database: mongodb
+environment: local
+clinical_writes: gated

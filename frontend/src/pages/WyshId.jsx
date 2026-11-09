@@ -1,0 +1,2 @@
+import React,{useEffect,useState} from "react"; import {api} from "../lib/api";
+export default function WyshId(){const [data,setData]=useState(null);useEffect(()=>{api.get("/identity/wyshid").then(setData).catch(()=>{})},[]);return <div className="page" style={{maxWidth:640}}><span className="eyebrow">Identity</span><h1>WyshID</h1><div className="card"><div className="stat">{data?.wysh_id||"WYC-LOCAL"}</div><p className="muted">Identity verification status: {data?.verified?"Verified":"Not verified"}</p></div></div>}

@@ -1,0 +1,1 @@
+import React from "react"; export const Carousel=({children})=><div style={{display:"flex",overflowX:"auto",gap:12}}>{children}</div>; export const CarouselItem=({children})=><div style={{minWidth:240}}>{children}</div>;

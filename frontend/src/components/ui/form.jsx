@@ -1,0 +1,1 @@
+import React from "react"; export const Form=({children,...p})=><form {...p}>{children}</form>; export const FormField=({children})=><div>{children}</div>; export const FormLabel=({children})=><label>{children}</label>;

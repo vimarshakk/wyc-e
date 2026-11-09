@@ -1,0 +1,2 @@
+import React,{useEffect,useState} from "react"; import {api} from "../lib/api";
+export default function Abdm(){const [data,setData]=useState(null);useEffect(()=>{api.get("/abdm/status").then(setData).catch(()=>{})},[]);return <div className="page"><span className="eyebrow">Interoperability</span><h1>ABDM</h1><div className="grid grid-3">{["m1","m2","m3","m4","m5"].map(k=><div className="card" key={k}><span className="muted">{k.toUpperCase()}</span><h3>{data?.[k]||"Authentication required"}</h3></div>)}</div></div>}

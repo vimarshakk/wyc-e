@@ -1,0 +1,2 @@
+import React,{useEffect,useState} from "react"; import {api} from "../lib/api";
+export default function Claims(){const [data,setData]=useState(null);useEffect(()=>{api.get("/nhcx/status").then(setData).catch(()=>{})},[]);return <div className="page"><span className="eyebrow">NHCX foundation</span><h1>Claims workspace</h1><div className="card"><h3>{data?.state||"Authentication required"}</h3><p className="muted">Outbound payer exchange remains disabled until participant onboarding, callback verification and JWE configuration pass.</p></div></div>}

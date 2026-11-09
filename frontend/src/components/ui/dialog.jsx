@@ -1,0 +1,1 @@
+import React from "react"; export const Dialog=({children})=><div>{children}</div>; export const DialogContent=({children})=><div className="card">{children}</div>; export const DialogTitle=({children})=><h2>{children}</h2>;

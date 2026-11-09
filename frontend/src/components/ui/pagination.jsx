@@ -1,0 +1,1 @@
+import React from "react"; export const Pagination=({children})=><nav aria-label="Pagination">{children}</nav>; export const PaginationContent=({children})=><div>{children}</div>; export const PaginationItem=({children})=><span>{children}</span>;

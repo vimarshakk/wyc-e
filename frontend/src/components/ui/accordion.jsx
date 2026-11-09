@@ -1,0 +1,1 @@
+import React from "react"; export const Accordion=({children})=><div>{children}</div>; export const AccordionItem=({children})=><details className="card">{children}</details>; export const AccordionTrigger=({children})=><summary>{children}</summary>; export const AccordionContent=({children})=><div>{children}</div>;

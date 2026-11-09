@@ -1,0 +1,1 @@
+import React from "react"; export const Avatar=({children,...p})=><span style={{display:"inline-grid",placeItems:"center",width:36,height:36,borderRadius:"50%",background:"#fff0e6"}} {...p}>{children}</span>; export const AvatarFallback=({children})=><span>{children}</span>;

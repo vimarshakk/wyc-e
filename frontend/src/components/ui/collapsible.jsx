@@ -1,0 +1,1 @@
+import React from "react"; export const Collapsible=({children})=><details>{children}</details>; export const CollapsibleTrigger=({children})=><summary>{children}</summary>; export const CollapsibleContent=({children})=><div>{children}</div>;

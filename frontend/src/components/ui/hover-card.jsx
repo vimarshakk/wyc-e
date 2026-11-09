@@ -1,0 +1,1 @@
+import React from "react"; export const HoverCard=({children})=><div>{children}</div>; export const HoverCardTrigger=({children})=><span>{children}</span>; export const HoverCardContent=({children})=><div className="card">{children}</div>;

@@ -1,0 +1,1 @@
+import React from "react"; export default function CarePlan(){return <div className="page"><span className="eyebrow">Your plan</span><h1>Care plan</h1><div className="card"><h3>Start with a clear next step</h3><p className="muted">Your clinician-reviewed goals and reminders will appear here.</p></div></div>}

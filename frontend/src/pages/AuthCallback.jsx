@@ -1,0 +1,1 @@
+import React from "react"; import {Link} from "react-router-dom"; export default function AuthCallback(){return <div className="page"><div className="card"><h1>Authentication callback</h1><p className="muted">The provider callback was received. Return to your workspace to continue.</p><Link className="button primary" to="/app">Open workspace</Link></div></div>}

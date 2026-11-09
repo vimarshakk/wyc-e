@@ -1,0 +1,2 @@
+import React,{useEffect,useState} from "react"; import {api} from "../lib/api";
+export default function Records(){const [data,setData]=useState({items:[]});useEffect(()=>{api.get("/records").then(setData).catch(()=>{})},[]);return <div className="page"><span className="eyebrow">Longitudinal health</span><h1>Records</h1><div className="card"><p className="muted">{data.items.length?"Your reviewed records":"No reviewed records are available yet."}</p></div></div>}

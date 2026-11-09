@@ -1,0 +1,1 @@
+import React from "react"; export const Progress=({value=0})=><div style={{height:8,background:"#f4e8dc",borderRadius:9}}><div style={{width:`${value}%`,height:"100%",background:"#f97316",borderRadius:9}}/></div>;

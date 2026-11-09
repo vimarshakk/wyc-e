@@ -1,0 +1,1 @@
+import React from "react"; export const Alert=({children,...p})=><div className="card" role="alert" {...p}>{children}</div>; export const AlertTitle=({children})=><strong>{children}</strong>; export const AlertDescription=({children})=><p className="muted">{children}</p>;
