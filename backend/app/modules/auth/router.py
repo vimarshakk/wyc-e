@@ -66,6 +66,10 @@ class PartnerProvisionBody(BaseModel):
     role: Literal["lab", "pharmacy", "insurer", "partner"]
     organization_name: str = Field(min_length=2, max_length=160)
 
+class VerificationDecision(BaseModel):
+    decision: Literal["APPROVED", "REJECTED", "SUSPENDED"]
+    reason: Optional[str] = Field(default=None, max_length=500)
+
 
 @router.post("/signup")
 async def signup(body: SignupBody):
@@ -129,6 +133,17 @@ async def provision_partner(body: PartnerProvisionBody, user: dict = Depends(req
     partner.pop("_id", None); partner.pop("password_hash", None)
     await write_audit(user["user_id"], "partner.provision", "user", user_id, {"role": body.role})
     return partner
+
+@router.get("/partners/pending")
+async def pending_partners(user: dict = Depends(require_role("admin"))):
+    return await users.find({"role": {"$in": ["doctor", "lab", "pharmacy", "insurer", "partner"]}, "verification_status": {"$in": ["VERIFICATION_PENDING", "ADMIN_REVIEW"]}}, {"_id": 0, "password_hash": 0}).to_list(500)
+
+@router.post("/partners/{user_id}/verification")
+async def decide_partner(user_id: str, body: VerificationDecision, user: dict = Depends(require_role("admin"))):
+    result = await users.update_one({"user_id": user_id, "role": {"$in": ["doctor", "lab", "pharmacy", "insurer", "partner"]}}, {"$set": {"verification_status": body.decision, "admin_decision": body.decision, "admin_decided_by": user["user_id"], "admin_decided_at": datetime.now(timezone.utc).isoformat(), "rejection_reason": body.reason if body.decision == "REJECTED" else None}})
+    if not result.modified_count: raise HTTPException(status_code=404, detail="Partner account not found")
+    await write_audit(user["user_id"], "partner.verification.decide", "user", user_id, {"decision": body.decision})
+    return {"user_id": user_id, "verification_status": body.decision}
 
 
 @router.post("/google/exchange")
