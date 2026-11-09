@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from ...core.db import chart_consents
 from ...core.deps import require_role
@@ -17,3 +17,8 @@ async def grant(body:Grant,user:dict=Depends(require_role('patient'))):
 @router.get('/mine')
 async def mine(user:dict=Depends(require_role('patient'))):
     return await chart_consents.find({'patient_id':user['user_id']},{'_id':0}).to_list(200)
+@router.post('/{consent_id}/revoke')
+async def revoke(consent_id:str,user:dict=Depends(require_role('patient'))):
+    result=await chart_consents.update_one({'consent_id':consent_id,'patient_id':user['user_id'],'status':'active'},{'$set':{'status':'revoked','revoked_at':datetime.now(timezone.utc).isoformat()}})
+    if not result.modified_count: raise HTTPException(status_code=404,detail='Active consent not found')
+    return {'ok':True}
