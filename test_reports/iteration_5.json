@@ -1,0 +1,41 @@
+{
+  "summary": "Backend-only public API authorization regression executed twice: 13/18 passed each run, five deterministic failures. Core records verification/membership, scoped UTC consent, revocation, patient ownership and scheduled/completed relationship checks pass. Offset expiry and adjacent clinical-route authorization remain unsafe. No product code changed.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/records?patient_id=...", "issue": "Consent with +10:00 expiry still authorizes chart after the actual expiry instant (200 instead of 403). Reproduced twice using a grant expiring in two seconds and waiting three seconds.", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/ocr/documents/{document_id}", "issue": "Unverified doctor with a scheduled appointment reads another patient's synthetic lab document (200 instead of 403). OCR authorization checks appointment relationship but not approval or active membership. Reproduced twice.", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/appointments/mine", "issue": "Approved doctor without active membership reads an appointment plus enriched patient data (200 instead of 403). Endpoint uses get_current_user without professional verification/membership enforcement. Reproduced twice.", "priority": "HIGH"},
+      {"endpoint": "POST /api/consents", "issue": "Timezone-free ISO expiry produces HTTP 500 instead of validation 400/422. Backend logs confirm TypeError: can't compare offset-naive and offset-aware datetimes at consents/router.py:18. Reproduced twice.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "GET /api/records?patient_id=...", "issue": "Valid consent expiring one hour in the future represented in -10:00 timezone is denied (403 instead of 200). Same string-comparison root cause as expired-consent bypass; reproduced twice."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_clinical_authorization.py",
+    "/app/test_reports/pytest/clinical_authorization_results.xml",
+    "/app/test_reports/pytest/clinical_authorization_retest.xml"
+  ],
+  "action_items": [
+    "Validate timezone-aware consent expiry; normalize expiry to UTC before storage and compare actual instants. Handle existing offset-formatted grants safely, without broad destructive migration.",
+    "Apply central professional approval/membership checks to OCR document reads/reviews/downloads and professional appointment/consultation/billing/task reads, not only require_role endpoints.",
+    "Use central scope-aware chart decisions consistently; retain scheduled/completed relationship semantics and patient self-access.",
+    "Rerun test_clinical_authorization.py after fixes; add direct review/download and consultation/task regression coverage."
+  ],
+  "critical_code_review_comments": [
+    "access.py:26-27 compares expires_at strings against UTC ISO text; grant router stores original body.expires_at despite parsing it. ISO text with arbitrary offsets is not chronologically sortable.",
+    "ocr/router.py:54-60 duplicates chart authorization, omits require_verified_member and ignores scoped consent. Both document review and file download reuse this vulnerable helper; these two operations were reviewed but not executed.",
+    "appointments/mine uses get_current_user and enriches with complete user objects minus password_hash. consultations create/list/get/join, billing invoice reads and partner-task mine similarly lack central professional approval/membership gates (code-only beyond executed appointment test).",
+    "Consent grant/revoke does not write audit events, unlike record creation and professional verification. Clinical consent lifecycle should be auditable.",
+    "Existing test_partner_access.py assumes only patients may self-register and partner self-record reads return 200; those assertions are stale under the new pending-professional signup and chart safety policy. Do not interpret that old suite unchanged as this feature's acceptance test."
+  ],
+  "updated_files": ["/app/backend/tests/test_clinical_authorization.py", "/app/test_reports/iteration_5.json"],
+  "success_rate": {"backend": "72.2% (13/18), identical across two runs", "frontend": "Not tested; backend-only request"},
+  "test_credentials": "Read documented credentials and auth instructions first. Documented patient, doctor and admin logins succeeded; no existing account modified. Credentials are not reproduced in this report.",
+  "seed_data_creation": "No seed/reset/migration. Each run created nine isolated TEST_ accounts using public signup, approved two through admin API, created one TEST_ organization and one active membership through public API, and created records/consents through public APIs. Synthetic appointment, inactive-membership and lab-document database fixtures enabled isolated authorization checks without external booking/OCR integrations. All test fixtures cleaned up only by captured IDs; user/identity, consent and record absence assertions passed. Normal audit events retained. No APIs MOCKED.",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "Source frontend/.env, then run pytest backend/tests/test_clinical_authorization.py -v --tb=short --junitxml=test_reports/pytest/clinical_authorization_retest.xml. Tests have 18 functions, module-isolated setup and finally cleanup; consent cases revoke their own grant. Public REACT_APP_BACKEND_URL used for every HTTP call. Mongo config is read only from protected backend env for synthetic setup/cleanup. No UI or external OAuth/LLM/storage integrations exercised. Date calculations use runtime UTC (container date November 2026), not hardcoded dates. Available finish tool substitutes for unavailable test_finish; auth integration-playbook tool unavailable. Prior auth lockout/cookie issues were not rerun in this scoped authorization regression.",
+  "rca of the issue": "Expiry bypass: grant +2 seconds converted to +10:00, wait 3 seconds, doctor GET records returns 200 because local timestamp string sorts after current UTC. False denial: future +1 hour grant converted to -10:00 sorts before UTC. Naive expiry: datetime.fromisoformat accepts no-offset text then comparison raises unhandled TypeError. OCR bypass: synthetic scheduled relationship and pending doctor token satisfy relationship-only helper. Appointment leak: approved nonmember token satisfies get_current_user and receives enriched clinical queue without a professional gate."
+}

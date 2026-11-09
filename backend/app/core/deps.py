@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import Header, Cookie, HTTPException, Depends
 from .security import decode_jwt
 from .db import users, sessions
+from .access import require_verified_member
 
 PROFESSIONAL_ROLES = {"doctor", "lab", "pharmacy", "insurer", "partner"}
 
@@ -57,7 +58,7 @@ def require_role(*roles: str):
     async def _check(user: dict = Depends(get_current_user)) -> dict:
         if user.get("role") not in roles:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        if user.get("role") in PROFESSIONAL_ROLES and user.get("verification_status") != "APPROVED":
-            raise HTTPException(status_code=403, detail="Account verification is pending")
+        if user.get("role") in PROFESSIONAL_ROLES:
+            await require_verified_member(user)
         return user
     return _check

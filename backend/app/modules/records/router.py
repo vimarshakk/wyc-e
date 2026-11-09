@@ -4,20 +4,13 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from typing import Literal, Optional, List
-from ...core.db import appointments, chart_consents, consultations, lab_reports, prescriptions, records
+from ...core.db import appointments, consultations, lab_reports, prescriptions, records
 from ...core.deps import get_current_user
 from ...core.audit import write_audit
+from ...core.access import can_access_patient_chart
 
 async def _can_access_chart(actor: dict, patient_id: str) -> bool:
-    if actor["user_id"] == patient_id:
-        return actor["role"] == "patient"
-    if actor["role"] != "doctor":
-        return False
-    consent = await chart_consents.find_one({"patient_id": patient_id, "grantee_id": actor["user_id"], "status": "active", "expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}}, {"_id": 0, "consent_id": 1})
-    if consent:
-        return True
-    relationship = await appointments.find_one({"doctor_id": actor["user_id"], "patient_id": patient_id, "status": {"$in": ["scheduled", "completed"]}}, {"_id": 0, "appointment_id": 1})
-    return bool(relationship)
+    return await can_access_patient_chart(actor, patient_id, "records")
 
 router = APIRouter(prefix="/records", tags=["records"])
 
